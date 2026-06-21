@@ -20,7 +20,7 @@ return new class extends Migration
             $table-> tinyInteger('is_open')->default(0);
             $table-> integer('com_code');
             $table-> integer('added_by');
-            $table-> integer('updated_by');
+            $table->integer('updated_by')->nullable();
             $table->timestamps();
         });
     }

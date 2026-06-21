@@ -15,8 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string("name", 225);
             $table->string("phones", 100);
-            $table->string("notes", 300);
-            $table->integer("added_by");
+            $table->string("notes", 300)->nullable();
             $table->integer("added_by");
             $table->integer("updated_by")->nullable();
             $table->tinyInteger("active")->default(1);

@@ -16,8 +16,9 @@ return new class extends Migration
             $table->tinyInteger("type")->comment("نوع الشفت واحد صباحي - اثنين ومسائي");
             $table->time("from_time");
             $table->time("to_time");
-            $table->time("total_hour");
+            $table->decimal("total_hour", 10, 2);
             $table->integer("com_code");
+            $table->tinyInteger("active")->default(1);
             $table->integer("added_by");
             $table->integer("updated_by")->nullable();
 
