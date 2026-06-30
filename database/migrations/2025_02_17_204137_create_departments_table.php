@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string("notes", 300)->nullable();
             $table->integer("added_by");
             $table->integer("updated_by")->nullable();
+            $table->Integer('com_code');
             $table->tinyInteger("active")->default(1);
 
             $table->timestamps();
