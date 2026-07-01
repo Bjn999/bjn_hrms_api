@@ -41,7 +41,6 @@ class DepartmentsController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|unique:departments,name,NULL,id,com_code,'.$user->com_code,
                 'phones' => 'required|string',
-                'address' => 'required|string',
                 'active' => 'required|in:0,1'
             ]);
 
@@ -52,7 +51,6 @@ class DepartmentsController extends Controller
             Department::create([
                 'name' => $request->name,
                 'phones' => $request->phones,
-                'address' => $request->address,
                 'active' => $request->active,
                 'added_by' => $user->id,
                 'com_code' => $user->com_code,
@@ -79,7 +77,6 @@ class DepartmentsController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => ['required', 'string', Rule::unique('departments')->where('com_code', $user->com_code)->ignore($id)],
                 'phones' => 'required|string',
-                'address' => 'required|string',
                 'active' => 'required|in:0,1'
             ]);
 
@@ -95,7 +92,6 @@ class DepartmentsController extends Controller
             $data->update([
                 'name' => $request->name,
                 'phones' => $request->phones,
-                'address' => $request->address,
                 'active' => $request->active,
                 'updated_by' => $user->id,
                 'updated_at' => date('Y-m-d H:i:s')
