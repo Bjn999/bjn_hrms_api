@@ -426,8 +426,12 @@ class MainSalaryEmployeeController extends Controller
             }
 
             $emp = Employee::where(['com_code' => $com_code, 'employee_code' => $salary->employee_code])
-                ->first(['emp_name']);
+                ->with(['department:id,name', 'job:id,name'])
+                ->first(['id', 'emp_name', 'emp_national_identity', 'emp_departments_id', 'emp_job_id']);
             $salary->emp_name_display = $emp ? $emp->emp_name : 'غير موجود';
+            $salary->emp_national_identity = $emp ? $emp->emp_national_identity : null;
+            $salary->department_name = ($emp && $emp->department) ? $emp->department->name : null;
+            $salary->job_name = ($emp && $emp->job) ? $emp->job->name : null;
 
             $finance_month = Finance_months_periods::find($salary->finance_month_id);
 

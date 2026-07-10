@@ -84,7 +84,7 @@ class DepartmentsController extends Controller
                 return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
             }
 
-            $counterUsed = Employee::where(['com_code' => $user->com_code, 'department_id' => $id])->count();
+            $counterUsed = Employee::where(['com_code' => $user->com_code, 'emp_departments_id' => $id])->count();
             if ($counterUsed > 0 && $request->active == 0) {
                 return response()->json(['status' => false, 'message' => 'لا يمكن تعطيل الإدارة لوجود موظفين مرتبطين بها'], 422);
             }
@@ -113,7 +113,7 @@ class DepartmentsController extends Controller
                 return response()->json(['status' => false, 'message' => 'الإدارة غير موجودة'], 404);
             }
 
-            $counterUsed = Employee::where(['com_code' => $user->com_code, 'department_id' => $id])->count();
+            $counterUsed = Employee::where(['com_code' => $user->com_code, 'emp_departments_id' => $id])->count();
             if ($counterUsed > 0) {
                 return response()->json(['status' => false, 'message' => 'لا يمكن حذف الإدارة لوجود موظفين مرتبطين بها'], 422);
             }

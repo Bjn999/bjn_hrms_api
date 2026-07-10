@@ -26,7 +26,7 @@ class AuthController extends Controller
         }
 
         // Delete old tokens if you want only one active session (optional)
-        // $admin->tokens()->delete();
+        $admin->tokens()->delete();
 
         $token = $admin->createToken('admin_token')->plainTextToken;
 
