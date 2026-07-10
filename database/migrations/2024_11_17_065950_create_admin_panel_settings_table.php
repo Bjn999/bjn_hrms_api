@@ -42,9 +42,9 @@ return new class extends Migration
         DB::table('admin_panel_settings')->insert(
             [
                 [
-                    'company_name' => 'admin',
+                    'company_name' => 'Admin',
                     'phones' => '777',
-                    'address' => 'admin',
+                    'address' => 'Mukalla',
                     'email' => 'test@gmail.com',
                     'added_by' => 1,
                     'com_code' => 1,

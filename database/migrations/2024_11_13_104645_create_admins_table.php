@@ -30,7 +30,7 @@ return new class extends Migration
         DB::table('admins')->insert(
             [
                 [
-                    'name' => 'admin',
+                    'name' => 'Admin',
                     'email' => 'test@gmail.com',
                     'username' => 'admin',
                     'password' => bcrypt('admin'),
