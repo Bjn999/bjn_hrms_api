@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\Admin\MainSalaryEmployeeAdditionsController;
 use App\Http\Controllers\Api\Admin\MainSalaryEmployeeRewardsController;
 use App\Http\Controllers\Api\Admin\MainSalaryEmployeeAllowancesController;
 use App\Http\Controllers\Api\Admin\MainSalaryEmployeeController;
+use App\Http\Controllers\Api\Admin\LanguagesController;
 
 Route::prefix('admin')->group(function() {
     Route::post('/login', [AuthController::class, 'login']);
@@ -66,6 +67,7 @@ Route::prefix('admin')->group(function() {
         Route::apiResource('countries', CountriesController::class)->except(['show']);
         Route::apiResource('governorates', GovernoratesController::class)->except(['show']);
         Route::apiResource('centers', CentersController::class)->except(['show']);
+        Route::apiResource('languages', LanguagesController::class)->except(['show']);
         
         // Employees Affairs
         Route::get('employees/required-data', [EmployeesController::class, 'get_required_data']);

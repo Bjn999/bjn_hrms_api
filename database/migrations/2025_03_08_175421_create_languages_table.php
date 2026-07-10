@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('languages', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->tinyInteger('active')->default(1);
+            $table->string('name', 255);
             $table->integer('com_code');
+            $table->tinyInteger('active')->default(1);
             $table->foreignId('added_by')->references('id')->on('admins')->onUpdate('cascade');
             $table->foreignId('updated_by')->nullable()->references('id')->on('admins')->onUpdate('cascade');
             $table->timestamps();
