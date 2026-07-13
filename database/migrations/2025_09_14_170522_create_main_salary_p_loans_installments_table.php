@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('year_and_month', 10)->comment('تاريخ الاستحقاق');
             $table->integer('status')->default(0)->comment('حالة الدفع: 0 لم يتم يدفع ، 1 تم الدفع على الراتب - 2 تم الدفع كاش');
             
-            $table->integer('is_parent_dismissal')->default(0)->comment('هل تم صرف الاب');
+            $table->integer('is_parent_disbursed')->default(0)->comment('هل تم صرف الاب');
             $table->integer('is_archived')->default(0)->comment('هل تم الارشفة');
             $table->foreignId('archived_by')->nullable()->comment('من الذي ارشفه')->references('id')->on('admins')->onUpdate('cascade');
             $table->dateTime('archived_at')->nullable()->comment('تاريخ الارشفة');

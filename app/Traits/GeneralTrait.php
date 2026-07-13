@@ -109,7 +109,7 @@ trait GeneralTrait
                     'com_code' => $com_code,
                     'year_and_month' => $finance_month_Data->year_and_month,
                     'is_archived' => 0,
-                    'is_parent_dismissal' => 1,
+                    'is_parent_disbursed' => 1,
                 ])->where('status', '!=', 2)->sum('monthly_installment_value');
 
                 // Update permanent installments status to 1
@@ -118,7 +118,7 @@ trait GeneralTrait
                     'com_code' => $com_code,
                     'year_and_month' => $finance_month_Data->year_and_month,
                     'is_archived' => 0,
-                    'is_parent_dismissal' => 1,
+                    'is_parent_disbursed' => 1,
                 ])->where('status', '!=', 2)->update([
                     'status' => 1,
                     'main_salary_employee_id' => $main_salary_employee_Id

@@ -89,8 +89,9 @@ Route::prefix('admin')->group(function() {
         Route::apiResource('additions', MainSalaryEmployeeAdditionsController::class);
         Route::apiResource('rewards', MainSalaryEmployeeRewardsController::class);
         Route::apiResource('employee-allowances', MainSalaryEmployeeAllowancesController::class);
-        Route::post('permanent-loans/{id}/dismiss', [MainSalaryEmployeePermanentLoansController::class, 'dismiss']);
+        Route::post('permanent-loans/{id}/disburse', [MainSalaryEmployeePermanentLoansController::class, 'disburse']);
         Route::get('permanent-loans/{id}/installments', [MainSalaryEmployeePermanentLoansController::class, 'installments']);
+        Route::post('permanent-loans/installments/{installment_id}/pay-cash', [MainSalaryEmployeePermanentLoansController::class, 'payCash']);
         // Salary Records (Months Lifecycle)
         Route::get('salary-records', [SalaryRecordsController::class, 'index']);
         Route::get('salary-records/pasma-dates/{id}', [SalaryRecordsController::class, 'getPasmaDates']);

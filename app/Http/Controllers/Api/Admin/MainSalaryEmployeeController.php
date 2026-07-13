@@ -119,15 +119,22 @@ class MainSalaryEmployeeController extends Controller
                 $item->emp_name_display = $emp ? $emp->emp_name : 'موظف غير موجود';
             }
 
-            // Get all active employees for the "add salary" dropdown (not already in this month)
-            $allEmployees = Employee::where(['com_code' => $com_code, 'functional_status' => 1])
+            // Get all employees 
+            $allEmployees = Employee::where(['com_code' => $com_code])
                 ->orderBy('emp_name')
                 ->get(['employee_code', 'emp_name', 'emp_sal', 'day_price']);
 
-            $existingCodes = Main_salary_employee::where(['com_code' => $com_code, 'finance_month_id' => $id])
+            // Get all active employees for the "add salary" dropdown (not already in this month)
+            // $activeEmployees = Employee::where(['com_code' => $com_code, 'functional_status' => 1])
+            //     ->orderBy('emp_name')
+            //     ->get(['employee_code', 'emp_name', 'emp_sal', 'day_price']);
+
+            // $existingCodes = Main_salary_employee::where(['com_code' => $com_code, 'finance_month_id' => $id])
+            $activeEmployees = Main_salary_employee::where(['com_code' => $com_code, 'finance_month_id' => $id])
                 ->pluck('employee_code');
 
-            $availableEmployees = $allEmployees->whereNotIn('employee_code', $existingCodes)->values();
+            // $availableEmployees = $allEmployees->whereNotIn('employee_code', $existingCodes)->values();
+            $availableEmployees = $allEmployees->whereNotIn('employee_code', $activeEmployees)->values();
             $nothavesal = $availableEmployees->count();
 
             return response()->json([

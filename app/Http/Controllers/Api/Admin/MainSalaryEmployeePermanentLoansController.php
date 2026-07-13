@@ -27,8 +27,8 @@ class MainSalaryEmployeePermanentLoansController extends Controller
             if ($request->has('employee_code') && $request->employee_code !== 'all') {
                 $query->where('employee_code', $request->employee_code);
             }
-            if ($request->has('is_dismissal') && $request->is_dismissal !== 'all') {
-                $query->where('is_dismissal', $request->is_dismissal);
+            if ($request->has('is_disbursed') && $request->is_disbursed !== 'all') {
+                $query->where('is_disbursed', $request->is_disbursed);
             }
             if ($request->has('is_archived') && $request->is_archived !== 'all') {
                 $query->where('is_archived', $request->is_archived);
@@ -130,7 +130,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
                 return response()->json(['status' => false, 'message' => 'السلفة غير موجودة'], 404);
             }
 
-            if ($loan->is_archived != 0 || $loan->is_dismissal != 0) {
+            if ($loan->is_archived != 0 || $loan->is_disbursed != 0) {
                 return response()->json(['status' => false, 'message' => 'لا يمكن تعديل سلفة تم صرفها أو أرشفتها'], 422);
             }
 
@@ -205,7 +205,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
             if ($loan->is_archived != 0) {
                 return response()->json(['status' => false, 'message' => 'تم أرشفة هذه السلفة بالفعل'], 422);
             }
-            if ($loan->is_dismissal != 0) {
+            if ($loan->is_disbursed != 0) {
                 return response()->json(['status' => false, 'message' => 'تم صرف هذه السلفة بالفعل ولا يمكن حذفها'], 422);
             }
 
@@ -222,7 +222,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
         }
     }
 
-    public function dismiss(Request $request, $id)
+    public function disburse(Request $request, $id)
     {
         try {
             $user = $request->user();
@@ -236,21 +236,21 @@ class MainSalaryEmployeePermanentLoansController extends Controller
             if ($loan->is_archived != 0) {
                 return response()->json(['status' => false, 'message' => 'تم أرشفة هذه السلفة بالفعل'], 422);
             }
-            if ($loan->is_dismissal != 0) {
+            if ($loan->is_disbursed != 0) {
                 return response()->json(['status' => false, 'message' => 'تم صرف هذه السلفة بالفعل'], 422);
             }
 
             DB::beginTransaction();
 
             $loan->update([
-                'is_dismissal' => 1,
-                'dismissal_by' => $user->id,
-                'dismissal_at' => date('Y-m-d H:i:s'),
+                'is_disbursed' => 1,
+                'disbursed_by' => $user->id,
+                'disbursed_at' => date('Y-m-d H:i:s'),
                 'updated_by' => $user->id,
             ]);
 
             Main_salary_p_loans_installment::where('com_code', $com_code)->where('main_salary_p_loans_id', $id)
-                ->update(['is_parent_dismissal' => 1]);
+                ->update(['is_parent_disbursed' => 1]);
 
             DB::commit();
             return response()->json(['status' => true, 'message' => 'تم صرف السلفة بنجاح']);
@@ -274,12 +274,76 @@ class MainSalaryEmployeePermanentLoansController extends Controller
             $installments = Main_salary_p_loans_installment::where('com_code', $com_code)->where('main_salary_p_loans_id', $id)->orderBy('id', 'ASC')->get();
             $installments->load(['added', 'updatedby']);
 
+            // if (!$installments) {
+            //     foreach ($installments as $info) {
+            //         $info['$counterbefornotpaid'] = Main_salary_p_loans_installment::where('com_code', $com_code)
+            //         ->where('main_salary_p_loans_id', $id)
+            //         ->where('status', 0)
+            //         ->where('is_archived', 0)
+            //         ->where('id', '<', $info->id)
+            //         ->count();
+            //     }
+            // }
+
             return response()->json([
                 'status' => true,
                 'data' => $loan,
                 'installments' => $installments
             ]);
         } catch (\Exception $e) {
+            return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function payCash(Request $request, $installment_id)
+    {
+        try {
+            $user = $request->user();
+            $com_code = $user->com_code;
+
+            $installment = Main_salary_p_loans_installment::where('com_code', $com_code)
+                ->where('id', $installment_id)
+                ->first();
+
+            if (!$installment) {
+                return response()->json(['status' => false, 'message' => 'القسط غير موجود'], 404);
+            }
+
+            if ($installment->status != 0) {
+                return response()->json(['status' => false, 'message' => 'هذا القسط مدفوع بالفعل أو مسدد'], 422);
+            }
+
+            if ($installment->is_archived != 0) {
+                return response()->json(['status' => false, 'message' => 'هذا القسط مؤرشف بالفعل'], 422);
+            }
+
+            DB::beginTransaction();
+
+            // Update installment to Paid Cash (2) and archive it (1)
+            $installment->update([
+                'status' => 2,
+                'is_archived' => 1,
+                'archived_by' => $user->id,
+                'archived_at' => date('Y-m-d H:i:s'),
+                'updated_by' => $user->id,
+            ]);
+
+            // If there's an open salary record for this employee in the installment's month, recalculate it
+            $main_salary_employee = \App\Models\Main_salary_employee::where([
+                'com_code' => $com_code,
+                'employee_code' => $installment->employee_code,
+                'year_and_month' => $installment->year_and_month,
+                'is_archived' => 0
+            ])->first();
+
+            if ($main_salary_employee) {
+                $this->recaculate_main_salary_employee($main_salary_employee->id);
+            }
+
+            DB::commit();
+            return response()->json(['status' => true, 'message' => 'تم دفع القسط كاش بنجاح']);
+        } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
         }
     }

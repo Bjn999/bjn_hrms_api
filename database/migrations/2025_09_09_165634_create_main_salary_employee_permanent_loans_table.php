@@ -19,12 +19,12 @@ return new class extends Migration
             $table->decimal('monthly_installment_value', 10, 2)->comment('قيمة القسط الشهري');
             $table->integer('months_number')->comment('عدد الشهور للأقساط');
             $table->string('year_and_month_start', 10)->comment('بداية السداد');
-            $table->date('year_and_month_start_date', 10)->comment('تاريخ بداية السداد');
+            $table->date('year_and_month_start_date')->comment('تاريخ بداية السداد');
             $table->decimal('total_paid', 10, 2)->default(0)->comment('اجمالي المبلغ المدفوع من السلفة');
             $table->decimal('total_remain', 10, 2)->default(0)->comment('اجمالي المبلغ المتبقي من السلفة');
-            $table->integer('is_dismissal')->default(0)->comment('هل تم الصرف');
-            $table->foreignId('dismissal_by')->nullable()->comment('من الذي صرف')->references('id')->on('admins')->onUpdate('cascade');
-            $table->dateTime('dismissal_at')->nullable()->comment('تاريخ الصرف');
+            $table->integer('is_disbursed')->default(0)->comment('هل تم الصرف');
+            $table->foreignId('disbursed_by')->nullable()->comment('من الذي صرف')->references('id')->on('admins')->onUpdate('cascade');
+            $table->dateTime('disbursed_at')->nullable()->comment('تاريخ الصرف');
 
             $table->integer('is_archived')->default(0)->comment('هل تم الارشفة');
             $table->foreignId('archived_by')->nullable()->comment('من الذي ارشفه')->references('id')->on('admins')->onUpdate('cascade');
