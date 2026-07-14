@@ -452,5 +452,52 @@ class MainSalaryEmployeeController extends Controller
         }
     }
 
+    // Get all salary records for a specific finance month with details (recalculate if not archived)
+    public function printAllDetails(Request $request, $id)
+    {
+        try {
+            $user = $request->user();
+            $com_code = $user->com_code;
 
+            $finance_month_data = Finance_months_periods::where(['com_code' => $com_code, 'id' => $id])->first();
+            if (!$finance_month_data) {
+                return response()->json(['status' => false, 'message' => 'الشهر المالي غير موجود'], 404);
+            }
+
+            $salary_data = Main_salary_employee::where(['com_code' => $com_code, 'finance_month_id' => $id])
+                ->orderBy('id', 'DESC')
+                ->get();
+
+            // Recalculate if not archived
+            foreach ($salary_data as $salary) {
+                if ($salary->is_archived == 0) {
+                    $this->recaculate_main_salary_employee($salary->id);
+                }
+            }
+
+            // Reload after recalculation
+            $salary_data = Main_salary_employee::where(['com_code' => $com_code, 'finance_month_id' => $id])
+                ->orderBy('id', 'DESC')
+                ->get();
+
+            foreach ($salary_data as $item) {
+                $emp = Employee::where(['com_code' => $com_code, 'employee_code' => $item->employee_code])
+                    ->with(['department:id,name', 'job:id,name'])
+                    ->first(['id', 'emp_name', 'emp_national_identity', 'emp_departments_id', 'emp_job_id']);
+                $item->emp_name_display = $emp ? $emp->emp_name : 'غير موجود';
+                $item->emp_national_identity = $emp ? $emp->emp_national_identity : null;
+                $item->department_name = ($emp && $emp->department) ? $emp->department->name : null;
+                $item->job_name = ($emp && $emp->job) ? $emp->job->name : null;
+            }
+
+            return response()->json([
+                'status' => true,
+                'finance_month' => $finance_month_data,
+                'data' => $salary_data,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 }
+

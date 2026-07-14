@@ -274,17 +274,6 @@ class MainSalaryEmployeePermanentLoansController extends Controller
             $installments = Main_salary_p_loans_installment::where('com_code', $com_code)->where('main_salary_p_loans_id', $id)->orderBy('id', 'ASC')->get();
             $installments->load(['added', 'updatedby']);
 
-            // if (!$installments) {
-            //     foreach ($installments as $info) {
-            //         $info['$counterbefornotpaid'] = Main_salary_p_loans_installment::where('com_code', $com_code)
-            //         ->where('main_salary_p_loans_id', $id)
-            //         ->where('status', 0)
-            //         ->where('is_archived', 0)
-            //         ->where('id', '<', $info->id)
-            //         ->count();
-            //     }
-            // }
-
             return response()->json([
                 'status' => true,
                 'data' => $loan,
@@ -315,6 +304,17 @@ class MainSalaryEmployeePermanentLoansController extends Controller
 
             if ($installment->is_archived != 0) {
                 return response()->json(['status' => false, 'message' => 'هذا القسط مؤرشف بالفعل'], 422);
+            }
+
+            $counterbefornotpaid = Main_salary_p_loans_installment::where('id', '<', $installment_id)
+                ->where('com_code', $com_code)
+                ->where('status', 0)
+                ->where('is_archived', 0)
+                ->where('main_salary_p_loans_id', $installment->main_salary_p_loans_id)
+                ->count();
+
+            if ($counterbefornotpaid > 0) {
+                return response()->json(['status' => false, 'message' => 'هذا القسط ليس أول قسط'], 422);
             }
 
             DB::beginTransaction();

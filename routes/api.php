@@ -107,6 +107,7 @@ Route::prefix('admin')->group(function() {
         Route::post('employee-salaries/{id}/stop', [MainSalaryEmployeeController::class, 'stopSalary']);
         Route::post('employee-salaries/{id}/resume', [MainSalaryEmployeeController::class, 'resumeSalary']);
         Route::get('employee-salaries/{id}/details', [MainSalaryEmployeeController::class, 'salaryDetails']);
+        Route::get('employee-salaries/{id}/print-all-details', [MainSalaryEmployeeController::class, 'printAllDetails']);
         Route::get('governorates-by-country/{country_id}', [CentersController::class, 'getGovernorates']);
     });
 });
