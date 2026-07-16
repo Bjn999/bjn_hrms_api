@@ -7,6 +7,8 @@ use App\Models\Employee;
 use App\Models\Main_salary_employee_permanent_loan;
 use App\Models\Main_salary_p_loans_installment;
 use App\Models\Finance_calenders;
+use App\Models\Finance_months_periods;
+use App\Models\Main_salary_employee;
 use App\Traits\GeneralTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +42,11 @@ class MainSalaryEmployeePermanentLoansController extends Controller
                 $q->select('employee_code', 'emp_name', 'emp_sal', 'day_price');
             }, 'added', 'updatedby']);
 
-            $employees = Employee::where('com_code', $com_code)->where('functional_status', 1)->select('employee_code', 'emp_name', 'emp_sal', 'day_price')->get();
+            $employees = Employee::where([
+                'com_code' => $com_code,
+            ])
+            ->select('employee_code', 'emp_name', 'emp_sal', 'day_price')
+            ->get();
 
             return response()->json([
                 'status' => true,

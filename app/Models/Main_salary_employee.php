@@ -24,6 +24,6 @@ class Main_salary_employee extends Model
         return $this->BelongsTo('\App\Models\Admins', 'updated_by');
     }
     public function employee(){
-        return $this->BelongsTo('\App\Models\Employee', 'employee_id');
+        return $this->BelongsTo('\App\Models\Employee', 'employee_code', 'employee_code');
     }
 }
