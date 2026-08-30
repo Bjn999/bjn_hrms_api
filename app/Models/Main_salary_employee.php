@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\TenantModel;
 
-class Main_salary_employee extends Model
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Main_salary_employee extends TenantModel
 {
     use HasFactory;
     protected $table = "main_salary_employees";
@@ -15,13 +16,13 @@ class Main_salary_employee extends Model
         return $this->BelongsTo('\App\Models\Finance_months_periods', 'finance_month_id');
     }
     public function archived_by(){
-        return $this->BelongsTo('\App\Models\Admins', 'archived_by');
+        return $this->BelongsTo('\App\Models\User', 'archived_by');
     }
     public function added(){
-        return $this->BelongsTo('\App\Models\Admins', 'added_by');
+        return $this->BelongsTo('\App\Models\User', 'added_by');
     }
     public function updatedby(){
-        return $this->BelongsTo('\App\Models\Admins', 'updated_by');
+        return $this->BelongsTo('\App\Models\User', 'updated_by');
     }
     public function employee(){
         return $this->BelongsTo('\App\Models\Employee', 'employee_code', 'employee_code');

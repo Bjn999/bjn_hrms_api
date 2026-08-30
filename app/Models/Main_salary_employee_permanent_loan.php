@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use App\Models\Main_salary_p_loans_installment;
 // use Laravel\Scout\Searchable;
 
-class Main_salary_employee_permanent_loan extends Model
+class Main_salary_employee_permanent_loan extends TenantModel
 {
     use HasFactory;
     protected $table = "main_salary_employee_permanent_loans";
@@ -15,11 +16,11 @@ class Main_salary_employee_permanent_loan extends Model
 
     public function added()
     {
-        return $this->BelongsTo('\App\Models\Admins', 'added_by');
+        return $this->BelongsTo('\App\Models\User', 'added_by');
     }
     public function updatedby()
     {
-        return $this->BelongsTo('\App\Models\Admins', 'updated_by');
+        return $this->BelongsTo('\App\Models\User', 'updated_by');
     }
     public function employee()
     {
@@ -27,7 +28,7 @@ class Main_salary_employee_permanent_loan extends Model
     }
     public function archived_by()
     {
-        return $this->BelongsTo('\App\Models\Admins', 'archived_by');
+        return $this->BelongsTo('\App\Models\User', 'archived_by');
     }
 
     public function installments()

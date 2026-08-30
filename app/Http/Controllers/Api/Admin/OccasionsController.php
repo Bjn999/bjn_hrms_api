@@ -13,9 +13,9 @@ class OccasionsController extends Controller
 {
     public function index(Request $request)
     {
-        $com_code = $request->user()->com_code;
+        $company_id = $request->user()->company_id;
         $data = Occasion::with(['added:id,name', 'updatedby:id,name'])
-            ->where('com_code', $com_code)
+            ->where('company_id', $company_id)
             ->orderBy('id', 'DESC')
             ->get();
         
@@ -33,7 +33,7 @@ class OccasionsController extends Controller
 
     public function store(Request $request)
     {
-        $com_code = $request->user()->com_code;
+        $company_id = $request->user()->company_id;
         
         $validator = Validator::make($request->all(), [
             'name' => 'required',
@@ -47,7 +47,7 @@ class OccasionsController extends Controller
             return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
         }
 
-        $checkExist = Occasion::where(['com_code' => $com_code, 'name' => $request->name])->first();
+        $checkExist = Occasion::where(['company_id' => $company_id, 'name' => $request->name])->first();
         if ($checkExist) {
             return response()->json(['status' => false, 'message' => 'عفواً هذه المناسبة مسجلة من قبل'], 422);
         }
@@ -60,7 +60,7 @@ class OccasionsController extends Controller
                 'to_date' => $request->to_date,
                 'days_counter' => $request->days_counter,
                 'active' => $request->active,
-                'com_code' => $com_code,
+                'company_id' => $company_id,
                 'added_by' => $request->user()->id,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
@@ -75,7 +75,7 @@ class OccasionsController extends Controller
 
     public function update(Request $request, $id)
     {
-        $com_code = $request->user()->com_code;
+        $company_id = $request->user()->company_id;
         $validator = Validator::make($request->all(), [
             'name' => 'required',
             'from_date' => 'required|date',
@@ -88,14 +88,14 @@ class OccasionsController extends Controller
             return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
         }
 
-        $checkExist = Occasion::where(['com_code' => $com_code, 'name' => $request->name])->where('id', '!=', $id)->first();
+        $checkExist = Occasion::where(['company_id' => $company_id, 'name' => $request->name])->where('id', '!=', $id)->first();
         if ($checkExist) {
             return response()->json(['status' => false, 'message' => 'عفواً هذه المناسبة مسجلة من قبل'], 422);
         }
 
         try {
             DB::beginTransaction();
-            $occasion = Occasion::where(['com_code' => $com_code, 'id' => $id])->first();
+            $occasion = Occasion::where(['company_id' => $company_id, 'id' => $id])->first();
             if (!$occasion) return response()->json(['status' => false, 'message' => 'غير موجود'], 404);
 
             $occasion->update([
@@ -117,8 +117,8 @@ class OccasionsController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $com_code = $request->user()->com_code;
-        $occasion = Occasion::where(['com_code' => $com_code, 'id' => $id])->first();
+        $company_id = $request->user()->company_id;
+        $occasion = Occasion::where(['company_id' => $company_id, 'id' => $id])->first();
         if (!$occasion) return response()->json(['status' => false, 'message' => 'غير موجود'], 404);
 
         $occasion->delete();

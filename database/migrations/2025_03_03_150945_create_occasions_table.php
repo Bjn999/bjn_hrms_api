@@ -17,11 +17,13 @@ return new class extends Migration
             $table->date('from_date');
             $table->date('to_date');
             $table->integer('days_counter');
-            $table->integer('com_code');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table->tinyInteger('active')->default(1);
-            $table->foreignId('added_by')->references('id')->on('admins')->onUpdate('cascade');
-            $table->foreignId('updated_by')->nullable()->references('id')->on('admins')->onUpdate('cascade');
+            $table->foreignId('added_by')->references('id')->on('users')->onUpdate('cascade');
+            $table->foreignId('updated_by')->nullable()->references('id')->on('users')->onUpdate('cascade');
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
+            $table->index(['company_id', 'name'], 'comp_name_idx');
         });
     }
 

@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\TenantModel;
 
-class Employee_salary_archive extends Model
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Employee_salary_archive extends TenantModel
 {
     use HasFactory;
     
@@ -13,10 +14,10 @@ class Employee_salary_archive extends Model
     protected $guarded = [];
 
     public function added(){
-        return $this->BelongsTo(Admins::class, 'added_by');
+        return $this->BelongsTo(User::class, 'added_by');
     }
     public function updatedby(){
-        return $this->BelongsTo(Admins::class, 'updated_by');
+        return $this->BelongsTo(User::class, 'updated_by');
     }
     public function employee()
     {

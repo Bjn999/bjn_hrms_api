@@ -20,8 +20,11 @@ return new class extends Migration
             $table->tinyInteger('active')->default(1);
             $table->Integer('added_by');
             $table->Integer('updated_by')->nullable();
-            $table->Integer('com_code');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
+            $table->index(['company_id', 'name'], 'comp_name_idx');
+            $table->index(['company_id', 'email'], 'comp_email_idx');
         });
     }
 

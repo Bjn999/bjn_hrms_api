@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use App\Models\Main_salary_employee_permanent_loan;
 
-class Main_salary_p_loans_installment extends Model
+class Main_salary_p_loans_installment extends TenantModel
 {
     use HasFactory;
     protected $table = "main_salary_p_loans_installments";
@@ -14,15 +15,15 @@ class Main_salary_p_loans_installment extends Model
 
     public function added()
     {
-        return $this->BelongsTo('\App\Models\Admins', 'added_by');
+        return $this->BelongsTo('\App\Models\User', 'added_by');
     }
     public function updatedby()
     {
-        return $this->BelongsTo('\App\Models\Admins', 'updated_by');
+        return $this->BelongsTo('\App\Models\User', 'updated_by');
     }
     public function archived_by()
     {
-        return $this->BelongsTo('\App\Models\Admins', 'archived_by');
+        return $this->BelongsTo('\App\Models\User', 'archived_by');
     }
     public function parent_loan()
     {

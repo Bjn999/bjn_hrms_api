@@ -95,11 +95,17 @@ return new class extends Migration
             $table->tinyInteger('is_done_vaccation_formula')->nullable()->default(0)->comment('هل تمت المعادلة التلقائية لإحتساب الرصيد السنوي من الإجازات للموظف');
             $table->tinyInteger('is_sensitive_manager_data')->nullable()->default(0)->comment('هل البيانات حساسة (للإدارة مثلاً) ولا تظهر إلا لصلاحيات خاصة');
             
-            $table->integer('com_code');
-            $table->foreignId('added_by')->references('id')->on('admins')->onUpdate('cascade');
-            $table->foreignId('updated_by')->nullable()->references('id')->on('admins')->onUpdate('cascade');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
+            $table->foreignId('added_by')->references('id')->on('users')->onUpdate('cascade');
+            $table->foreignId('updated_by')->nullable()->references('id')->on('users')->onUpdate('cascade');
 
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
+            $table->index(['company_id', 'employee_code'], 'comp_emp_idx');
+        });
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->foreign('employee_id')->references('id')->on('employees')->onUpdate('cascade')->onDelete('cascade');
         });
     }
 
@@ -108,6 +114,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['employee_id']);
+        });
         Schema::dropIfExists('employees');
     }
 };

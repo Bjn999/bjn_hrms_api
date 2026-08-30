@@ -18,10 +18,11 @@ return new class extends Migration
             $table-> date('start_date');
             $table-> date('end_date');
             $table-> tinyInteger('is_open')->default(0);
-            $table-> integer('com_code');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table-> integer('added_by');
             $table->integer('updated_by')->nullable();
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
         });
     }
 

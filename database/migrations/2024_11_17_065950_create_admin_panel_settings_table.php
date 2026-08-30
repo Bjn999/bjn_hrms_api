@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('email', 100);
             $table->integer('added_by');
             $table->integer('updated_by')->nullable();
-            $table->integer('com_code');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table->decimal('after_miniute_calculate_delay',10,2)->default(0)->comment('بعد كم دقيقة نحتسب تأخير حضور');
             $table->decimal('after_miniute_calculate_early_departure',10,2)->default(0)->comment('بعد كم دقيقة نحتسب انصراف مبكر');
             $table->decimal('after_miniute_quarterday',10,2)->default(0)->comment('بعد كم دقيقة مجموع الحضور المتأخر أو الإنصراف المبكر نخصم ربع يوم');
@@ -37,20 +37,10 @@ return new class extends Migration
             $table->decimal('sanctions_value_fourth_abcence',10,2)->default(0)->comment('قيمة خصم الأيام بعد رابع غياب بدون عذر (أيام)');
 
             $table->timestamps(); 
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
+            $table->index(['company_id', 'email'], 'comp_email_idx');
         });
 
-        DB::table('admin_panel_settings')->insert(
-            [
-                [
-                    'company_name' => 'Admin',
-                    'phones' => '777',
-                    'address' => 'Mukalla',
-                    'email' => 'test@gmail.com',
-                    'added_by' => 1,
-                    'com_code' => 1,
-                ],
-            ]
-        );
     }
 
     /**

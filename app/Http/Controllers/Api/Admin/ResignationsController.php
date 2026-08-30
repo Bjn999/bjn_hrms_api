@@ -13,14 +13,14 @@ class ResignationsController extends Controller
 {
     public function index(Request $request)
     {
-        $com_code = $request->user()->com_code;
+        $company_id = $request->user()->company_id;
         $data = Resignation::with(['added:id,name', 'updatedby:id,name'])
-            ->where('com_code', $com_code)
+            ->where('company_id', $company_id)
             ->orderBy('id', 'DESC')
             ->get();
         
         foreach ($data as $info) {
-            $info->counterUsed = Employee::where(['com_code' => $com_code, 'resignation_id' => $info->id])->count();
+            $info->counterUsed = Employee::where(['company_id' => $company_id, 'resignation_id' => $info->id])->count();
         }
 
         return response()->json(['status' => true, 'data' => $data]);
@@ -28,7 +28,7 @@ class ResignationsController extends Controller
 
     public function store(Request $request)
     {
-        $com_code = $request->user()->com_code;
+        $company_id = $request->user()->company_id;
         $validator = Validator::make($request->all(), [
             'name' => 'required',
             'active' => 'required|in:0,1'
@@ -38,7 +38,7 @@ class ResignationsController extends Controller
             return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
         }
 
-        $checkExist = Resignation::where(['com_code' => $com_code, 'name' => $request->name])->first();
+        $checkExist = Resignation::where(['company_id' => $company_id, 'name' => $request->name])->first();
         if ($checkExist) return response()->json(['status' => false, 'message' => 'عفواً هذا النوع مسجل من قبل'], 422);
 
         try {
@@ -46,7 +46,7 @@ class ResignationsController extends Controller
             Resignation::create([
                 'name' => $request->name,
                 'active' => $request->active,
-                'com_code' => $com_code,
+                'company_id' => $company_id,
                 'added_by' => $request->user()->id,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
@@ -61,7 +61,7 @@ class ResignationsController extends Controller
 
     public function update(Request $request, $id)
     {
-        $com_code = $request->user()->com_code;
+        $company_id = $request->user()->company_id;
         $validator = Validator::make($request->all(), [
             'name' => 'required',
             'active' => 'required|in:0,1'
@@ -69,12 +69,12 @@ class ResignationsController extends Controller
 
         if ($validator->fails()) return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
 
-        $checkExist = Resignation::where(['com_code' => $com_code, 'name' => $request->name])->where('id', '!=', $id)->first();
+        $checkExist = Resignation::where(['company_id' => $company_id, 'name' => $request->name])->where('id', '!=', $id)->first();
         if ($checkExist) return response()->json(['status' => false, 'message' => 'عفواً هذا النوع مسجل من قبل'], 422);
 
         try {
             DB::beginTransaction();
-            $res = Resignation::where(['com_code' => $com_code, 'id' => $id])->first();
+            $res = Resignation::where(['company_id' => $company_id, 'id' => $id])->first();
             if (!$res) return response()->json(['status' => false, 'message' => 'غير موجود'], 404);
 
             $res->update([
@@ -93,11 +93,11 @@ class ResignationsController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $com_code = $request->user()->com_code;
-        $res = Resignation::where(['com_code' => $com_code, 'id' => $id])->first();
+        $company_id = $request->user()->company_id;
+        $res = Resignation::where(['company_id' => $company_id, 'id' => $id])->first();
         if (!$res) return response()->json(['status' => false, 'message' => 'غير موجود'], 404);
 
-        $counterUsed = Employee::where(['com_code' => $com_code, 'resignation_id' => $id])->count();
+        $counterUsed = Employee::where(['company_id' => $company_id, 'resignation_id' => $id])->count();
         if ($counterUsed > 0) return response()->json(['status' => false, 'message' => 'عفواً لا يمكن حذف هذا النوع لوجود موظفين مرتبطين به'], 422);
 
         $res->delete();

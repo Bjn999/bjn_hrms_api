@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Finance_calenders extends Model
+class Finance_calenders extends TenantModel
 {
     use HasFactory;
     protected $table = 'finance_calenders';
@@ -16,7 +17,7 @@ class Finance_calenders extends Model
         'start_date',
         'end_date',
         'is_open',
-        'com_code',
+        'company_id',
         'added_by',
         'updated_by',
         'created_at',
@@ -24,9 +25,9 @@ class Finance_calenders extends Model
     ];
 
     public function added(){
-        return $this->BelongsTo('\App\Models\Admins', 'added_by');
+        return $this->BelongsTo('\App\Models\User', 'added_by');
     }
     public function updatedby(){
-        return $this->BelongsTo('\App\Models\Admins', 'updated_by');
+        return $this->BelongsTo('\App\Models\User', 'updated_by');
     }
 }

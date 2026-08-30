@@ -19,15 +19,17 @@ return new class extends Migration
             $table->decimal('day_price', 10, 2)->comment('الراتب اليومي للموظف');
             $table->decimal('total', 10, 2)->comment('اجمالي السلفة الشهرية');
             $table->integer('is_archived')->default(0)->comment('هل تم الارشفة');
-            $table->foreignId('archived_by')->nullable()->comment('من الذي ارشفه')->references('id')->on('admins')->onUpdate('cascade');
+            $table->foreignId('archived_by')->nullable()->comment('من الذي ارشفه')->references('id')->on('users')->onUpdate('cascade');
             $table->dateTime('archived_at')->nullable()->comment('تاريخ الارشفة');
             $table->string('notes', 100)->nullable();
-            $table->integer('com_code');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table->integer('active')->default(1);
-            $table->foreignId('added_by')->references('id')->on('admins')->onUpdate('cascade');
-            $table->foreignId('updated_by')->nullable()->references('id')->on('admins')->onUpdate('cascade');
+            $table->foreignId('added_by')->references('id')->on('users')->onUpdate('cascade');
+            $table->foreignId('updated_by')->nullable()->references('id')->on('users')->onUpdate('cascade');
 
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
+            $table->index(['company_id', 'employee_code'], 'comp_emp_idx');
         });
     }
 

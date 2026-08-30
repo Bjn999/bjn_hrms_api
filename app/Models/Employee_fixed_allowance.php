@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\TenantModel;
 
-class Employee_fixed_allowance extends Model
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Employee_fixed_allowance extends TenantModel
 {
     use HasFactory;
     protected $table = "employee_fixed_allowance";
@@ -18,9 +19,9 @@ class Employee_fixed_allowance extends Model
         return $this->BelongsTo('\App\Models\Allowance', 'allowance_id');
     }
     public function added(){
-        return $this->BelongsTo('\App\Models\Admins', 'added_by');
+        return $this->BelongsTo('\App\Models\User', 'added_by');
     }
     public function updatedby(){
-        return $this->BelongsTo('\App\Models\Admins', 'updated_by');
+        return $this->BelongsTo('\App\Models\User', 'updated_by');
     }
 }

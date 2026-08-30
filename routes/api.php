@@ -2,7 +2,6 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\Admin\AuthController;
 use App\Http\Controllers\Api\Admin\AdminPanelSettingsController;
 use App\Http\Controllers\Api\Admin\FinanceCalendersController;
 use App\Http\Controllers\Api\Admin\BranchesController;
@@ -20,6 +19,7 @@ use App\Http\Controllers\Api\Admin\CountriesController;
 use App\Http\Controllers\Api\Admin\GovernoratesController;
 use App\Http\Controllers\Api\Admin\CentersController;
 use App\Http\Controllers\Api\Admin\EmployeesController;
+use App\Http\Controllers\Api\Admin\RolesController;
 use App\Http\Controllers\Api\Admin\AdditionalSalTypesController;
 use App\Http\Controllers\Api\Admin\DiscountSalTypesController;
 use App\Http\Controllers\Api\Admin\AllowancesController;
@@ -33,17 +33,26 @@ use App\Http\Controllers\Api\Admin\MainSalaryEmployeeRewardsController;
 use App\Http\Controllers\Api\Admin\MainSalaryEmployeeAllowancesController;
 use App\Http\Controllers\Api\Admin\MainSalaryEmployeeController;
 use App\Http\Controllers\Api\Admin\LanguagesController;
+use App\Http\Controllers\Api\Admin\AttendancesController;
+use App\Http\Controllers\Api\Admin\AttendanceRawLogsController;
+
+use App\Http\Controllers\Api\AuthController as UnifiedAuthController;
+
+Route::post('/login', [UnifiedAuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [UnifiedAuthController::class, 'user']);
+    Route::get('/user/personal-dashboard', [\App\Http\Controllers\Api\Employee\DashboardController::class, 'index']);
+    Route::put('/profile/update', [UnifiedAuthController::class, 'updateProfile']);
+    Route::post('/logout', [UnifiedAuthController::class, 'logout']);
+});
 
 Route::prefix('admin')->group(function() {
-    Route::post('/login', [AuthController::class, 'login']);
-
     Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/user', [AuthController::class, 'user']);
-        Route::post('/logout', [AuthController::class, 'logout']);
-        
         // Settings
         Route::get('/generalSettings', [AdminPanelSettingsController::class, 'index']);
         Route::post('/generalSettings', [AdminPanelSettingsController::class, 'update']);
+        Route::post('/companyProfile', [AdminPanelSettingsController::class, 'updateCompanyProfile']);
 
         // Finance Calendars
         Route::get('/finance-calendars', [FinanceCalendersController::class, 'index']);
@@ -69,8 +78,14 @@ Route::prefix('admin')->group(function() {
         Route::apiResource('centers', CentersController::class)->except(['show']);
         Route::apiResource('languages', LanguagesController::class)->except(['show']);
         
+        // Roles & Permissions Management
+        Route::get('permissions', [RolesController::class, 'permissionsList']);
+        Route::post('users/{userId}/assign-role', [RolesController::class, 'assignRoleToUser']);
+        Route::apiResource('roles', RolesController::class);
+
         // Employees Affairs
         Route::get('employees/required-data', [EmployeesController::class, 'get_required_data']);
+        Route::post('employees/{id}/toggle-login', [EmployeesController::class, 'toggleLogin']);
         Route::post('employees/{id}/fixed-allowances', [EmployeesController::class, 'addFixedAllowance']);
         Route::put('employees/fixed-allowances/{id}', [EmployeesController::class, 'updateFixedAllowance']);
         Route::delete('employees/fixed-allowances/{id}', [EmployeesController::class, 'deleteFixedAllowance']);
@@ -78,6 +93,17 @@ Route::prefix('admin')->group(function() {
         Route::delete('employees/files/{id}', [EmployeesController::class, 'deleteFile']);
         Route::get('employees/{id}/salary-archive', [EmployeesController::class, 'getSalaryArchive']);
         Route::apiResource('employees', EmployeesController::class);
+        
+        // Attendances 
+        Route::post('attendances/{month_id}/sync-biotime', [AttendancesController::class, 'syncBioTime']);
+        Route::post('attendances/{month_id}/extract', [AttendancesController::class, 'extractMonthActions']);
+        Route::post('attendances/{month_id}/employee/{employee_code}/extract', [AttendancesController::class, 'extractEmployeeActions']);
+        Route::apiResource('attendances', AttendancesController::class)->only(['index', 'show']);
+        Route::get('attendances/{month_id}/employee/{employee_code}', [AttendancesController::class, 'employeeAttendance']);
+        Route::apiResource('attendance-raw-logs', AttendanceRawLogsController::class)->only(['index']);
+        
+        // 
+        Route::apiResource('reward-sal-types', AdditionalSalTypesController::class)->except(['show']);
         Route::apiResource('additional-sal-types', AdditionalSalTypesController::class)->except(['show']);
         Route::apiResource('discount-sal-types', DiscountSalTypesController::class)->except(['show']);
         Route::apiResource('allowances', AllowancesController::class)->except(['show']);
@@ -110,4 +136,12 @@ Route::prefix('admin')->group(function() {
         Route::get('employee-salaries/{id}/print-all-details', [MainSalaryEmployeeController::class, 'printAllDetails']);
         Route::get('governorates-by-country/{country_id}', [CentersController::class, 'getGovernorates']);
     });
+});
+
+// Removed specific employee dashboard route to avoid confusion, frontend uses general /user/personal-dashboard
+
+// Super Admin Routes
+Route::prefix('super-admin')->middleware(['auth:sanctum'])->group(function() {
+    Route::get('/dashboard', [\App\Http\Controllers\Api\SuperAdmin\DashboardController::class, 'index']);
+    Route::apiResource('/companies', \App\Http\Controllers\Api\SuperAdmin\CompanyController::class);
 });

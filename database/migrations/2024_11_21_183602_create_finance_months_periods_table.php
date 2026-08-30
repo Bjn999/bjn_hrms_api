@@ -26,9 +26,10 @@ return new class extends Migration
             $table->date('end_date_for_pasma');
             $table->integer('added_by');
             $table->integer('updated_by');
-            $table->integer('com_code');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
 
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
         });
     }
 

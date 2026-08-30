@@ -13,27 +13,28 @@ use App\Models\Main_salary_employee_discount;
 use App\Models\Main_salary_employee_reward;
 use App\Models\Main_salary_employee_allowance;
 use App\Models\Main_salary_employee_loan;
+use App\Models\Main_salary_employee_permanent_loan;
 use App\Models\Main_salary_p_loans_installment;
 
 trait GeneralTrait
 {
     public function recaculate_main_salary_employee($main_salary_employee_Id)
     {
-        $com_code = auth()->user()->com_code;
+        $company_id = auth()->user()->company_id;
         $main_salary_employee_data = Main_salary_employee::where([
-            'com_code' => $com_code, 
+            'company_id' => $company_id, 
             'id' => $main_salary_employee_Id, 
             'is_archived' => 0
         ])->first();
         
         if ($main_salary_employee_data) {
             $employeeData = Employee::where([
-                'com_code' => $com_code, 
+                'company_id' => $company_id, 
                 'employee_code' => $main_salary_employee_data->employee_code
             ])->first();
             
             $finance_month_Data = Finance_months_periods::where([
-                'com_code' => $com_code, 
+                'company_id' => $company_id, 
                 'id' => $main_salary_employee_data->finance_month_id
             ])->first();
 
@@ -43,27 +44,27 @@ trait GeneralTrait
                 $motivation = (float) $employeeData->motivation;
                 
                 $fixed_allowances = (float) Employee_fixed_allowance::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'employee_id' => $employeeData->id
                 ])->sum('value');
                 
                 $changable_allowances = (float) Main_salary_employee_allowance::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'main_salary_employee_id' => $main_salary_employee_Id
                 ])->sum('total');
                 
                 $reward = (float) Main_salary_employee_reward::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'main_salary_employee_id' => $main_salary_employee_Id
                 ])->sum('total');
                 
                 $additional_days_counter = (float) Main_salary_employee_addition::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'main_salary_employee_id' => $main_salary_employee_Id
                 ])->sum('value');
                 
                 $additional_days_total = (float) Main_salary_employee_addition::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'main_salary_employee_id' => $main_salary_employee_Id
                 ])->sum('total');
 
@@ -75,38 +76,38 @@ trait GeneralTrait
                 $medicalinsurancecutmonthly = (float) $employeeData->medical_insurance_cut_monthly;
                 
                 $sanctions_days_counter = (float) Main_salary_employee_sanction::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'main_salary_employee_id' => $main_salary_employee_Id
                 ])->sum('value');
                 
                 $sanctions_days_total = (float) Main_salary_employee_sanction::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'main_salary_employee_id' => $main_salary_employee_Id
                 ])->sum('total');
                 
                 $absence_days_counter = (float) Main_salary_employee_absence::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'main_salary_employee_id' => $main_salary_employee_Id
                 ])->sum('value');
                 
                 $absence_days_total = (float) Main_salary_employee_absence::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'main_salary_employee_id' => $main_salary_employee_Id
                 ])->sum('total');
                 
                 $discount = (float) Main_salary_employee_discount::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'main_salary_employee_id' => $main_salary_employee_Id
                 ])->sum('total');
                 
                 $monthly_loan = (float) Main_salary_employee_loan::where([
-                    'com_code' => $com_code, 
+                    'company_id' => $company_id, 
                     'main_salary_employee_id' => $main_salary_employee_Id
                 ])->sum('total');
                 
                 $permanent_loan = (float) Main_salary_p_loans_installment::where([
                     'employee_code' => $main_salary_employee_data->employee_code,
-                    'com_code' => $com_code,
+                    'company_id' => $company_id,
                     'year_and_month' => $finance_month_Data->year_and_month,
                     'is_archived' => 0,
                     'is_parent_disbursed' => 1,
@@ -115,7 +116,7 @@ trait GeneralTrait
                 // Update permanent installments status to 1
                 Main_salary_p_loans_installment::where([
                     'employee_code' => $main_salary_employee_data->employee_code,
-                    'com_code' => $com_code,
+                    'company_id' => $company_id,
                     'year_and_month' => $finance_month_Data->year_and_month,
                     'is_archived' => 0,
                     'is_parent_disbursed' => 1,
@@ -162,6 +163,28 @@ trait GeneralTrait
                     'year_and_month' => $finance_month_Data->year_and_month,
                     'finance_yr' => $finance_month_Data->finance_yr,
                 ]);
+
+                $p_installments = Main_salary_p_loans_installment::where([
+                    'employee_code' => $main_salary_employee_data->employee_code,
+                    'company_id' => $company_id,
+                    'year_and_month' => $finance_month_Data->year_and_month,
+                    'is_archived' => 0,
+                    'is_parent_disbursed' => 1,
+                ])->where('status', '!=', 2)->get();
+
+                foreach ($p_installments as $p_inst) {
+                    $p_installment_parent = Main_salary_employee_permanent_loan::where([
+                        'id' => $p_inst->main_salary_p_loans_id,
+                        'employee_code' => $main_salary_employee_data->employee_code,
+                        'company_id' => $company_id,
+                    ])->first();
+                    if ($p_installment_parent) {
+                        $p_installment_parent->update([
+                            'total_paid' => $p_installment_parent->total_paid + $p_inst->monthly_installment_value,
+                            'total_remain' => $p_installment_parent->total_remain - $p_inst->monthly_installment_value,
+                        ]);
+                    }
+                }
             }
         }
     }

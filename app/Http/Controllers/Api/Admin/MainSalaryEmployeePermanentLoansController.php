@@ -22,9 +22,9 @@ class MainSalaryEmployeePermanentLoansController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $query = Main_salary_employee_permanent_loan::where('com_code', $com_code);
+            $query = Main_salary_employee_permanent_loan::where('company_id', $company_id);
 
             if ($request->has('employee_code') && $request->employee_code !== 'all') {
                 $query->where('employee_code', $request->employee_code);
@@ -38,15 +38,15 @@ class MainSalaryEmployeePermanentLoansController extends Controller
 
             $data = $query->orderBy('id', 'DESC')->get();
 
-            $data->load(['employee' => function($q) {
+            $data->load(['employee' => function ($q) {
                 $q->select('employee_code', 'emp_name', 'emp_sal', 'day_price');
             }, 'added', 'updatedby']);
 
             $employees = Employee::where([
-                'com_code' => $com_code,
+                'company_id' => $company_id,
             ])
-            ->select('employee_code', 'emp_name', 'emp_sal', 'day_price')
-            ->get();
+                ->select('employee_code', 'emp_name', 'emp_sal', 'day_price')
+                ->get();
 
             return response()->json([
                 'status' => true,
@@ -62,7 +62,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
             $validator = Validator::make($request->all(), [
                 'employee_code' => 'required',
@@ -77,7 +77,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
                 return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
             }
 
-            $employee = Employee::where('com_code', $com_code)->where('employee_code', $request->employee_code)->where('functional_status', 1)->first();
+            $employee = Employee::where('company_id', $company_id)->where('employee_code', $request->employee_code)->where('functional_status', 1)->first();
             if (!$employee) {
                 return response()->json(['status' => false, 'message' => 'الموظف غير موجود أو موقوف'], 404);
             }
@@ -87,7 +87,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
             $year_and_month_start = date("Y-m", strtotime($request->year_and_month_start_date));
 
             $loan = Main_salary_employee_permanent_loan::create([
-                'com_code' => $com_code,
+                'company_id' => $company_id,
                 'employee_code' => $request->employee_code,
                 'emp_sal' => $request->emp_sal,
                 'total' => $request->total,
@@ -105,7 +105,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
                 $effectivedate = $year_and_month_start;
                 while ($i <= $request->months_number) {
                     Main_salary_p_loans_installment::create([
-                        'com_code' => $com_code,
+                        'company_id' => $company_id,
                         'employee_code' => $request->employee_code,
                         'main_salary_p_loans_id' => $loan->id,
                         'monthly_installment_value' => $request->monthly_installment_value,
@@ -129,9 +129,9 @@ class MainSalaryEmployeePermanentLoansController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $loan = Main_salary_employee_permanent_loan::where('com_code', $com_code)->where('id', $id)->first();
+            $loan = Main_salary_employee_permanent_loan::where('company_id', $company_id)->where('id', $id)->first();
             if (!$loan) {
                 return response()->json(['status' => false, 'message' => 'السلفة غير موجودة'], 404);
             }
@@ -164,14 +164,14 @@ class MainSalaryEmployeePermanentLoansController extends Controller
 
             // Re-generate installments if any related field changed
             if ($old_total != $request->total || $old_months != $request->months_number || $old_installment != $request->monthly_installment_value || $old_start_date != $request->year_and_month_start_date) {
-                
-                Main_salary_p_loans_installment::where('com_code', $com_code)->where('main_salary_p_loans_id', $id)->delete();
-                
+
+                Main_salary_p_loans_installment::where('company_id', $company_id)->where('main_salary_p_loans_id', $id)->delete();
+
                 $i = 1;
                 $effectivedate = $year_and_month_start;
                 while ($i <= $request->months_number) {
                     Main_salary_p_loans_installment::create([
-                        'com_code' => $com_code,
+                        'company_id' => $company_id,
                         'employee_code' => $request->employee_code,
                         'main_salary_p_loans_id' => $id,
                         'monthly_installment_value' => $request->monthly_installment_value,
@@ -182,7 +182,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
                     $effectivedate = date('Y-m', strtotime('+1 months', strtotime($effectivedate)));
                 }
             } else {
-                Main_salary_p_loans_installment::where('com_code', $com_code)
+                Main_salary_p_loans_installment::where('company_id', $company_id)
                     ->where('main_salary_p_loans_id', $id)
                     ->update([
                         'employee_code' => $request->employee_code
@@ -201,9 +201,9 @@ class MainSalaryEmployeePermanentLoansController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $loan = Main_salary_employee_permanent_loan::where('com_code', $com_code)->where('id', $id)->first();
+            $loan = Main_salary_employee_permanent_loan::where('company_id', $company_id)->where('id', $id)->first();
             if (!$loan) {
                 return response()->json(['status' => false, 'message' => 'السلفة غير موجودة'], 404);
             }
@@ -217,7 +217,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
 
             DB::beginTransaction();
 
-            Main_salary_p_loans_installment::where('com_code', $com_code)->where('main_salary_p_loans_id', $id)->delete();
+            Main_salary_p_loans_installment::where('company_id', $company_id)->where('main_salary_p_loans_id', $id)->delete();
             $loan->delete();
 
             DB::commit();
@@ -232,9 +232,9 @@ class MainSalaryEmployeePermanentLoansController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $loan = Main_salary_employee_permanent_loan::where('com_code', $com_code)->where('id', $id)->first();
+            $loan = Main_salary_employee_permanent_loan::where('company_id', $company_id)->where('id', $id)->first();
             if (!$loan) {
                 return response()->json(['status' => false, 'message' => 'السلفة غير موجودة'], 404);
             }
@@ -255,8 +255,13 @@ class MainSalaryEmployeePermanentLoansController extends Controller
                 'updated_by' => $user->id,
             ]);
 
-            Main_salary_p_loans_installment::where('com_code', $com_code)->where('main_salary_p_loans_id', $id)
+            Main_salary_p_loans_installment::where('company_id', $company_id)->where('main_salary_p_loans_id', $id)
                 ->update(['is_parent_disbursed' => 1]);
+
+            $mainSalaryOpen = Main_salary_employee::select('id')->where('company_id', $company_id)->where('employee_code', $loan->employee_code)->where('is_archived', 0)->first();
+            if ($mainSalaryOpen) {
+                $this->recaculate_main_salary_employee($mainSalaryOpen->id);
+            }
 
             DB::commit();
             return response()->json(['status' => true, 'message' => 'تم صرف السلفة بنجاح']);
@@ -270,14 +275,14 @@ class MainSalaryEmployeePermanentLoansController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $loan = Main_salary_employee_permanent_loan::where('com_code', $com_code)->where('id', $id)->first();
+            $loan = Main_salary_employee_permanent_loan::where('company_id', $company_id)->where('id', $id)->first();
             if (!$loan) {
                 return response()->json(['status' => false, 'message' => 'السلفة غير موجودة'], 404);
             }
 
-            $installments = Main_salary_p_loans_installment::where('com_code', $com_code)->where('main_salary_p_loans_id', $id)->orderBy('id', 'ASC')->get();
+            $installments = Main_salary_p_loans_installment::where('company_id', $company_id)->where('main_salary_p_loans_id', $id)->orderBy('id', 'ASC')->get();
             $installments->load(['added', 'updatedby']);
 
             return response()->json([
@@ -294,11 +299,19 @@ class MainSalaryEmployeePermanentLoansController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $installment = Main_salary_p_loans_installment::where('com_code', $com_code)
+            $installment = Main_salary_p_loans_installment::where('company_id', $company_id)
                 ->where('id', $installment_id)
                 ->first();
+
+            $p_loan = Main_salary_employee_permanent_loan::where('company_id', $company_id)
+                ->where('id', $installment->main_salary_p_loans_id)
+                ->where('employee_code', $installment->employee_code)
+                ->first();
+            if (!$p_loan) {
+                return response()->json(['status' => false, 'message' => 'السلفة غير موجودة'], 404);
+            }
 
             if (!$installment) {
                 return response()->json(['status' => false, 'message' => 'القسط غير موجود'], 404);
@@ -313,7 +326,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
             }
 
             $counterbefornotpaid = Main_salary_p_loans_installment::where('id', '<', $installment_id)
-                ->where('com_code', $com_code)
+                ->where('company_id', $company_id)
                 ->where('status', 0)
                 ->where('is_archived', 0)
                 ->where('main_salary_p_loans_id', $installment->main_salary_p_loans_id)
@@ -335,8 +348,8 @@ class MainSalaryEmployeePermanentLoansController extends Controller
             ]);
 
             // If there's an open salary record for this employee in the installment's month, recalculate it
-            $main_salary_employee = \App\Models\Main_salary_employee::where([
-                'com_code' => $com_code,
+            $main_salary_employee = Main_salary_employee::where([
+                'company_id' => $company_id,
                 'employee_code' => $installment->employee_code,
                 'year_and_month' => $installment->year_and_month,
                 'is_archived' => 0
@@ -345,6 +358,12 @@ class MainSalaryEmployeePermanentLoansController extends Controller
             if ($main_salary_employee) {
                 $this->recaculate_main_salary_employee($main_salary_employee->id);
             }
+
+            // Update Permanent loan (total paid, total remain)
+            $p_loan->update([
+                'total_paid' => $p_loan->total_paid + $installment->monthly_installment_value,
+                'total_remain' => $p_loan->total_remain - $installment->monthly_installment_value,
+            ]);
 
             DB::commit();
             return response()->json(['status' => true, 'message' => 'تم دفع القسط كاش بنجاح']);

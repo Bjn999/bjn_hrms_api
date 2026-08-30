@@ -14,13 +14,15 @@ return new class extends Migration
         Schema::create('governorates', function (Blueprint $table) {
             $table->id();
             $table->string('name', 255);
-            $table->integer('com_code');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table->tinyInteger('active')->default(1);
             $table->foreignId('country_id')->references('id')->on('countries')->onUpdate('cascade')->onDelete('cascade');
-            $table->foreignId('added_by')->references('id')->on('admins')->onUpdate('cascade');
-            $table->foreignId('updated_by')->nullable()->references('id')->on('admins')->onUpdate('cascade');
+            $table->foreignId('added_by')->references('id')->on('users')->onUpdate('cascade');
+            $table->foreignId('updated_by')->nullable()->references('id')->on('users')->onUpdate('cascade');
 
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
+            $table->index(['company_id', 'name'], 'comp_name_idx');
         });
     }
 

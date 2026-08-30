@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Additional_sal_type;
 use App\Models\Main_salary_employee_addition;
 use App\Models\Main_salary_employee_reward;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,22 +15,23 @@ class AdditionalSalTypesController extends Controller
     public function index(Request $request)
     {
         try {
-            $com_code = auth()->user()->com_code;
+            $company_id = auth()->user()->company_id;
             $data = Additional_sal_type::with(['added:id,name', 'updatedby:id,name'])
-                ->where('com_code', $com_code)
+                ->where('company_id', $company_id)
                 ->orderBy('id', 'DESC')
                 ->get();
-
+            
             foreach ($data as $info) {
-                $info->counterUsed = Main_salary_employee_reward::where(['com_code' => $com_code, 'additions_type_id' => $info->id])->count();
+                $counterReward = Main_salary_employee_reward::where(['company_id' => $company_id, 'additions_type_id' => $info->id])->count();
+                $info->counterUsed = $counterReward;
             }
             
             return response()->json([
                 'status' => true,
                 'data' => $data
             ]);
-        } catch (\Exception $e) {
-            return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+        } catch (Exception $e) {
+            return response()->json(['status' => false, 'message' => __('messages.server_error')], 500);
         }
     }
 
@@ -46,21 +48,21 @@ class AdditionalSalTypesController extends Controller
                 return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
             }
 
-            $checkExist = Additional_sal_type::where(['com_code' => $user->com_code, 'name' => $request->name])->first();
+            $checkExist = Additional_sal_type::where(['company_id' => $user->company_id, 'name' => $request->name])->first();
             if ($checkExist) {
-                return response()->json(['status' => false, 'message' => 'هذه البيانات موجودة من قبل'], 422);
+                return response()->json(['status' => false, 'message' => __('messages.data_exists')], 422);
             }
 
             Additional_sal_type::create([
                 'name' => $request->name,
                 'active' => $request->active,
-                'com_code' => $user->com_code,
+                'company_id' => $user->company_id,
                 'added_by' => $user->id,
             ]);
 
-            return response()->json(['status' => true, 'message' => 'تم الحفظ بنجاح']);
-        } catch (\Exception $e) {
-            return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+            return response()->json(['status' => true, 'message' => __('messages.saved_successfully')]);
+        } catch (Exception $e) {
+            return response()->json(['status' => false, 'message' => __('messages.server_error')], 500);
         }
     }
 
@@ -68,9 +70,9 @@ class AdditionalSalTypesController extends Controller
     {
         try {
             $user = auth()->user();
-            $data = Additional_sal_type::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = Additional_sal_type::where(['id' => $id, 'company_id' => $user->company_id])->first();
             if (!$data) {
-                return response()->json(['status' => false, 'message' => 'غير موجود'], 404);
+                return response()->json(['status' => false, 'message' => __('messages.not_found')], 404);
             }
 
             $validator = Validator::make($request->all(), [
@@ -82,9 +84,9 @@ class AdditionalSalTypesController extends Controller
                 return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
             }
 
-            $checkExist = Additional_sal_type::where(['com_code' => $user->com_code, 'name' => $request->name])->where('id', '!=', $id)->first();
+            $checkExist = Additional_sal_type::where(['company_id' => $user->company_id, 'name' => $request->name])->where('id', '!=', $id)->first();
             if ($checkExist) {
-                return response()->json(['status' => false, 'message' => 'هذه البيانات موجودة من قبل'], 422);
+                return response()->json(['status' => false, 'message' => __('messages.data_exists')], 422);
             }
 
             $data->update([
@@ -93,9 +95,9 @@ class AdditionalSalTypesController extends Controller
                 'updated_by' => $user->id,
             ]);
 
-            return response()->json(['status' => true, 'message' => 'تم التعديل بنجاح']);
-        } catch (\Exception $e) {
-            return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+            return response()->json(['status' => true, 'message' => __('messages.updated_successfully')]);
+        } catch (Exception $e) {
+            return response()->json(['status' => false, 'message' => __('messages.server_error')], 500);
         }
     }
 
@@ -103,20 +105,22 @@ class AdditionalSalTypesController extends Controller
     {
         try {
             $user = auth()->user();
-            $data = Additional_sal_type::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = Additional_sal_type::where(['id' => $id, 'company_id' => $user->company_id])->first();
             if (!$data) {
-                return response()->json(['status' => false, 'message' => 'غير موجود'], 404);
+                return response()->json(['status' => false, 'message' => __('messages.not_found')], 404);
             }
 
-            $counterUsed = Main_salary_employee_reward::where(['com_code' => $user->com_code, 'additions_type_id' => $id])->count();
-            if ($counterUsed > 0) {
-                return response()->json(['status' => false, 'message' => 'عفواً لا يمكن حذف هذا النوع لأنه مستخدم في النظام'], 422);
+            $counterReward = Main_salary_employee_reward::where(['company_id' => $user->company_id, 'additions_type_id' => $id])->count();
+            $counterAddition = Main_salary_employee_addition::where(['company_id' => $user->company_id, 'additions_type_id' => $id])->count();
+            if (($counterReward + $counterAddition) > 0) {
+                return response()->json(['status' => false, 'message' => __('messages.cannot_delete_used')], 422);
             }
 
             $data->delete();
-            return response()->json(['status' => true, 'message' => 'تم الحذف بنجاح']);
-        } catch (\Exception $e) {
-            return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+            return response()->json(['status' => true, 'message' => __('messages.deleted_successfully')]);
+        } catch (Exception $e) {
+            return response()->json(['status' => false, 'message' => __('messages.server_error')], 500);
         }
     }
 }
+

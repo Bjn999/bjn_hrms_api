@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\TenantModel;
 
-class Finance_months_periods extends Model
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Finance_months_periods extends TenantModel
 {
     use HasFactory;
     protected $table = 'finance_months_periods';
@@ -22,16 +23,16 @@ class Finance_months_periods extends Model
         'end_date_for_pasma',
         'added_by',
         'updated_by',
-        'com_code',
+        'company_id',
         'created_at',
         'updated_at'
     ];
 
     public function added(){
-        return $this->BelongsTo('\App\Models\Admins', 'added_by');
+        return $this->BelongsTo('\App\Models\User', 'added_by');
     }
     public function updatedby(){
-        return $this->BelongsTo('\App\Models\Admins', 'updated_by');
+        return $this->BelongsTo('\App\Models\User', 'updated_by');
     }
     public function month(){
         return $this->BelongsTo('\App\Models\Monthes', 'month_id');

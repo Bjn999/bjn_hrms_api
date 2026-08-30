@@ -58,12 +58,14 @@ return new class extends Migration
             $table->integer('is_stoped')->nullable()->default(0)->comment('هل هذا الراتب موقوف');
             
             $table->integer('is_archived')->nullable()->default(0)->comment('هل تم ارشفة الراتب');
-            $table->foreignId('archived_by')->nullable()->comment('من قام بأرشفة الراتب')->references('id')->on('admins')->onUpdate('cascade');
+            $table->foreignId('archived_by')->nullable()->comment('من قام بأرشفة الراتب')->references('id')->on('users')->onUpdate('cascade');
             $table->dateTime('archived_date')->nullable()->comment('تاريخ ارشفة الراتب');
-            $table->foreignId('added_by')->references('id')->on('admins')->onUpdate('cascade');
-            $table->foreignId('updated_by')->nullable()->references('id')->on('admins')->onUpdate('cascade');
-            $table->integer('com_code')->comment('كود الشركة التابع لها الموضف لحظة الراتب');
+            $table->foreignId('added_by')->references('id')->on('users')->onUpdate('cascade');
+            $table->foreignId('updated_by')->nullable()->references('id')->on('users')->onUpdate('cascade');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
+            $table->index(['company_id', 'employee_code'], 'comp_emp_idx');
         });
     }
 

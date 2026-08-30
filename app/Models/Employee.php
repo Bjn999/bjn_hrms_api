@@ -2,14 +2,31 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\TenantModel;
 
-class Employee extends Model
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Employee extends TenantModel
 {
     use HasFactory;
     protected $table = 'employees';
     protected $guarded = [];
+
+    protected static function booted()
+    {
+        parent::booted();
+
+        static::saving(function ($employee) {
+            if ($employee->isDirty('first_name') || $employee->isDirty('middle_name') || $employee->isDirty('last_name')) {
+                $employee->emp_name = trim(preg_replace('/\s+/', ' ', "{$employee->first_name} {$employee->middle_name} {$employee->last_name}"));
+            }
+        });
+    }
+
+    public function user()
+    {
+        return $this->hasOne('\App\Models\User', 'employee_id');
+    }
 
     public function branch(){
         return $this->BelongsTo('\App\Models\Branche', 'branch_id');
@@ -54,10 +71,10 @@ class Employee extends Model
         return $this->BelongsTo('\App\Models\Resignation', 'resignation_id');
     }
     public function added(){
-        return $this->BelongsTo('\App\Models\Admins', 'added_by');
+        return $this->BelongsTo('\App\Models\User', 'added_by');
     }
     public function updatedby(){
-        return $this->BelongsTo('\App\Models\Admins', 'updated_by');
+        return $this->BelongsTo('\App\Models\User', 'updated_by');
     }
     public function fixedAllowances(){
         return $this->hasMany('\App\Models\Employee_fixed_allowance', 'employee_id');

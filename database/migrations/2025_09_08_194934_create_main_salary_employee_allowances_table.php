@@ -20,16 +20,18 @@ return new class extends Migration
             $table->foreignId('allowances_id')->comment('نوع البدل')->references('id')->on('allowances')->onUpdate('cascade');
             $table->decimal('total', 10, 2)->comment('اجمالي البدل');
             $table->integer('is_archived')->default(0)->comment('هل تم الارشفة');
-            $table->foreignId('archived_by')->nullable()->comment('من الذي ارشفه')->references('id')->on('admins')->onUpdate('cascade');
+            $table->foreignId('archived_by')->nullable()->comment('من الذي ارشفه')->references('id')->on('users')->onUpdate('cascade');
             $table->dateTime('archived_at')->nullable()->comment('تاريخ الارشفة');
             $table->integer('is_auto')->default(0)->comment('هل البدل يتم تلقائي من النظام ام بشكل يدوي');
             $table->string('notes', 100)->nullable();
-            $table->integer('com_code');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table->integer('active')->default(1);
-            $table->foreignId('added_by')->references('id')->on('admins')->onUpdate('cascade');
-            $table->foreignId('updated_by')->nullable()->references('id')->on('admins')->onUpdate('cascade');
+            $table->foreignId('added_by')->references('id')->on('users')->onUpdate('cascade');
+            $table->foreignId('updated_by')->nullable()->references('id')->on('users')->onUpdate('cascade');
 
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
+            $table->index(['company_id', 'employee_code'], 'comp_emp_idx');
         });
     }
 

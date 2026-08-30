@@ -16,12 +16,12 @@ class QualificationsController extends Controller
         try {
             $user = $request->user();
             $data = Qualification::with(['added:id,name', 'updatedby:id,name'])
-                ->where("com_code", $user->com_code)
+                ->where("company_id", $user->company_id)
                 ->orderBy('id', 'DESC')
                 ->get();
             
             foreach ($data as $item) {
-                $item->counterUsed = Employee::where(['com_code' => $user->com_code, 'qualifications_id' => $item->id])->count();
+                $item->counterUsed = Employee::where(['company_id' => $user->company_id, 'qualifications_id' => $item->id])->count();
             }
             
             return response()->json([
@@ -39,7 +39,7 @@ class QualificationsController extends Controller
             $user = $request->user();
             
             $validator = Validator::make($request->all(), [
-                'name' => 'required|string|unique:qualifications,name,NULL,id,com_code,'.$user->com_code,
+                'name' => 'required|string|unique:qualifications,name,NULL,id,company_id,'.$user->company_id,
                 'active' => 'required|in:0,1'
             ]);
 
@@ -51,7 +51,7 @@ class QualificationsController extends Controller
                 'name' => $request->name,
                 'active' => $request->active,
                 'added_by' => $user->id,
-                'com_code' => $user->com_code,
+                'company_id' => $user->company_id,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
@@ -66,14 +66,14 @@ class QualificationsController extends Controller
     {
         try {
             $user = $request->user();
-            $data = Qualification::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = Qualification::where(['id' => $id, 'company_id' => $user->company_id])->first();
             
             if (!$data) {
                 return response()->json(['status' => false, 'message' => 'المؤهل غير موجود'], 404);
             }
 
             $validator = Validator::make($request->all(), [
-                'name' => ['required', 'string', Rule::unique('qualifications')->where('com_code', $user->com_code)->ignore($id)],
+                'name' => ['required', 'string', Rule::unique('qualifications')->where('company_id', $user->company_id)->ignore($id)],
                 'active' => 'required|in:0,1'
             ]);
 
@@ -81,7 +81,7 @@ class QualificationsController extends Controller
                 return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
             }
 
-            $counterUsed = Employee::where(['com_code' => $user->com_code, 'qualifications_id' => $id])->count();
+            $counterUsed = Employee::where(['company_id' => $user->company_id, 'qualifications_id' => $id])->count();
             if ($counterUsed > 0 && $request->active == 0) {
                 return response()->json(['status' => false, 'message' => 'لا يمكن تعطيل المؤهل لوجود موظفين مرتبطين به'], 422);
             }
@@ -103,13 +103,13 @@ class QualificationsController extends Controller
     {
         try {
             $user = $request->user();
-            $data = Qualification::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = Qualification::where(['id' => $id, 'company_id' => $user->company_id])->first();
             
             if (!$data) {
                 return response()->json(['status' => false, 'message' => 'المؤهل غير موجود'], 404);
             }
 
-            $counterUsed = Employee::where(['com_code' => $user->com_code, 'qualifications_id' => $id])->count();
+            $counterUsed = Employee::where(['company_id' => $user->company_id, 'qualifications_id' => $id])->count();
             if ($counterUsed > 0) {
                 return response()->json(['status' => false, 'message' => 'لا يمكن حذف المؤهل لوجود موظفين مرتبطين به'], 422);
             }

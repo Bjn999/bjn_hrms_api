@@ -16,10 +16,11 @@ return new class extends Migration
             $table->foreignId('employee_id')->references('id')->on('employees')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('allowance_id')->references('id')->on('allowances')->onUpdate('cascade');
             $table->decimal('value', 10, 2)->comment('قيمة البدل الثابت');
-            $table->foreignId('added_by')->references('id')->on('admins')->onUpdate('cascade');
-            $table->foreignId('updated_by')->nullable()->references('id')->on('admins')->onUpdate('cascade');
-            $table->integer('com_code');
+            $table->foreignId('added_by')->references('id')->on('users')->onUpdate('cascade');
+            $table->foreignId('updated_by')->nullable()->references('id')->on('users')->onUpdate('cascade');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
         });
     }
 

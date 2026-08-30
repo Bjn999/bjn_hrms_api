@@ -16,12 +16,12 @@ class ShiftsController extends Controller
         try {
             $user = auth()->user();
             $data = shifts_type::with(['added:id,name', 'updatedby:id,name'])
-                ->where("com_code", $user->com_code)
+                ->where("company_id", $user->company_id)
                 ->orderBy('id', 'DESC')
                 ->get();
             
             foreach ($data as $item) {
-                $item->counterUsed = Employee::where(['com_code' => $user->com_code, 'shift_type_id' => $item->id])->count();
+                $item->counterUsed = Employee::where(['company_id' => $user->company_id, 'shift_type_id' => $item->id])->count();
             }
             
             return response()->json([
@@ -50,7 +50,7 @@ class ShiftsController extends Controller
             }
 
             $checkExist = shifts_type::where([
-                'com_code' => $user->com_code,
+                'company_id' => $user->company_id,
                 'type' => $request->type,
                 'from_time' => $request->from_time,
                 'to_time' => $request->to_time,
@@ -58,7 +58,7 @@ class ShiftsController extends Controller
             ])->first();
 
             if ($checkExist) {
-                return response()->json(['status' => false, 'message' => 'هذه البيانات موجودة من قبل'], 422);
+                return response()->json(['status' => false, 'message' => __('messages.data_exists')], 422);
             }
 
             shifts_type::create([
@@ -67,15 +67,15 @@ class ShiftsController extends Controller
                 'to_time' => $request->to_time,
                 'total_hour' => $request->total_hour,
                 'active' => $request->active,
-                'com_code' => $user->com_code,
+                'company_id' => $user->company_id,
                 'added_by' => $user->id,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
 
-            return response()->json(['status' => true, 'message' => 'تم الحفظ بنجاح']);
+            return response()->json(['status' => true, 'message' => __('messages.saved_successfully')]);
         } catch (\Exception $e) {
-            return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+            return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
@@ -83,9 +83,9 @@ class ShiftsController extends Controller
     {
         try {
             $user = auth()->user();
-            $data = shifts_type::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = shifts_type::where(['id' => $id, 'company_id' => $user->company_id])->first();
             if (!$data) {
-                return response()->json(['status' => false, 'message' => 'غير موجود'], 404);
+                return response()->json(['status' => false, 'message' => __('messages.not_found')], 404);
             }
 
             $validator = Validator::make($request->all(), [
@@ -101,7 +101,7 @@ class ShiftsController extends Controller
             }
 
             $checkExist = shifts_type::where([
-                'com_code' => $user->com_code,
+                'company_id' => $user->company_id,
                 'type' => $request->type,
                 'from_time' => $request->from_time,
                 'to_time' => $request->to_time,
@@ -109,12 +109,12 @@ class ShiftsController extends Controller
             ])->where('id', '!=', $id)->first();
 
             if ($checkExist) {
-                return response()->json(['status' => false, 'message' => 'هذه البيانات موجودة من قبل'], 422);
+                return response()->json(['status' => false, 'message' => __('messages.data_exists')], 422);
             }
 
-            $counterUsed = Employee::where(['com_code' => $user->com_code, 'shift_type_id' => $id])->count();
+            $counterUsed = Employee::where(['company_id' => $user->company_id, 'shift_type_id' => $id])->count();
             if ($counterUsed > 0 && $request->active == 0) {
-                return response()->json(['status' => false, 'message' => 'لا يمكن تعطيل هذا السجل لارتباطه بموظفين'], 422);
+                return response()->json(['status' => false, 'message' => __('messages.cannot_disable_used')], 422);
             }
 
             $data->update([
@@ -127,9 +127,9 @@ class ShiftsController extends Controller
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
 
-            return response()->json(['status' => true, 'message' => 'تم التعديل بنجاح']);
+            return response()->json(['status' => true, 'message' => __('messages.updated_successfully')]);
         } catch (\Exception $e) {
-            return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+            return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
@@ -137,20 +137,20 @@ class ShiftsController extends Controller
     {
         try {
             $user = auth()->user();
-            $data = shifts_type::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = shifts_type::where(['id' => $id, 'company_id' => $user->company_id])->first();
             if (!$data) {
-                return response()->json(['status' => false, 'message' => 'غير موجود'], 404);
+                return response()->json(['status' => false, 'message' => __('messages.not_found')], 404);
             }
 
-            $counterUsed = Employee::where(['com_code' => $user->com_code, 'shift_type_id' => $id])->count();
+            $counterUsed = Employee::where(['company_id' => $user->company_id, 'shift_type_id' => $id])->count();
             if ($counterUsed > 0) {
-                return response()->json(['status' => false, 'message' => 'لا يمكن الحذف لارتباطه بموظفين'], 422);
+                return response()->json(['status' => false, 'message' => __('messages.cannot_delete_used')], 422);
             }
 
             $data->delete();
-            return response()->json(['status' => true, 'message' => 'تم الحذف بنجاح']);
+            return response()->json(['status' => true, 'message' => __('messages.deleted_successfully')]);
         } catch (\Exception $e) {
-            return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+            return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }

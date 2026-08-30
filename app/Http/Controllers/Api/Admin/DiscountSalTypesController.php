@@ -13,14 +13,14 @@ class DiscountSalTypesController extends Controller
     public function index(Request $request)
     {
         try {
-            $com_code = auth()->user()->com_code;
+            $company_id = auth()->user()->company_id;
             $data = Discount_sal_type::with(['added:id,name', 'updatedby:id,name'])
-                ->where('com_code', $com_code)
+                ->where('company_id', $company_id)
                 ->orderBy('id', 'DESC')
                 ->get();
 
             foreach ($data as $info) {
-                $info->counterUsed = Main_salary_employee_discount::where(['com_code' => $com_code, 'discounts_type_id' => $info->id])->count();
+                $info->counterUsed = Main_salary_employee_discount::where(['company_id' => $company_id, 'discounts_type_id' => $info->id])->count();
             }
             
             return response()->json([
@@ -45,7 +45,7 @@ class DiscountSalTypesController extends Controller
                 return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
             }
 
-            $checkExist = Discount_sal_type::where(['com_code' => $user->com_code, 'name' => $request->name])->first();
+            $checkExist = Discount_sal_type::where(['company_id' => $user->company_id, 'name' => $request->name])->first();
             if ($checkExist) {
                 return response()->json(['status' => false, 'message' => 'هذه البيانات موجودة من قبل'], 422);
             }
@@ -53,7 +53,7 @@ class DiscountSalTypesController extends Controller
             Discount_sal_type::create([
                 'name' => $request->name,
                 'active' => $request->active,
-                'com_code' => $user->com_code,
+                'company_id' => $user->company_id,
                 'added_by' => $user->id,
             ]);
 
@@ -67,7 +67,7 @@ class DiscountSalTypesController extends Controller
     {
         try {
             $user = auth()->user();
-            $data = Discount_sal_type::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = Discount_sal_type::where(['id' => $id, 'company_id' => $user->company_id])->first();
             if (!$data) {
                 return response()->json(['status' => false, 'message' => 'غير موجود'], 404);
             }
@@ -81,7 +81,7 @@ class DiscountSalTypesController extends Controller
                 return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
             }
 
-            $checkExist = Discount_sal_type::where(['com_code' => $user->com_code, 'name' => $request->name])->where('id', '!=', $id)->first();
+            $checkExist = Discount_sal_type::where(['company_id' => $user->company_id, 'name' => $request->name])->where('id', '!=', $id)->first();
             if ($checkExist) {
                 return response()->json(['status' => false, 'message' => 'هذه البيانات موجودة من قبل'], 422);
             }
@@ -102,12 +102,12 @@ class DiscountSalTypesController extends Controller
     {
         try {
             $user = auth()->user();
-            $data = Discount_sal_type::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = Discount_sal_type::where(['id' => $id, 'company_id' => $user->company_id])->first();
             if (!$data) {
                 return response()->json(['status' => false, 'message' => 'غير موجود'], 404);
             }
 
-            $counterUsed = Main_salary_employee_discount::where(['com_code' => $user->com_code, 'discounts_type_id' => $id])->count();
+            $counterUsed = Main_salary_employee_discount::where(['company_id' => $user->company_id, 'discounts_type_id' => $id])->count();
             if ($counterUsed > 0) {
                 return response()->json(['status' => false, 'message' => 'عفواً لا يمكن حذف هذا النوع لأنه مستخدم في النظام'], 422);
             }

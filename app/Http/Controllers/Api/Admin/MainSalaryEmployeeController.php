@@ -29,9 +29,9 @@ class MainSalaryEmployeeController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $finance_years = Finance_calenders::where('com_code', $com_code)
+            $finance_years = Finance_calenders::where('company_id', $company_id)
                 ->whereIn('is_open', [1, 2])
                 ->orderBy('finance_yr', 'DESC')
                 ->get(['finance_yr']);
@@ -39,7 +39,7 @@ class MainSalaryEmployeeController extends Controller
             $default_year = $finance_years->first() ? $finance_years->first()->finance_yr : null;
             $filter_year = $request->finance_yr && $request->finance_yr !== 'all' ? $request->finance_yr : $default_year;
 
-            $query = Finance_months_periods::where('com_code', $com_code);
+            $query = Finance_months_periods::where('company_id', $company_id);
             
             if ($filter_year) {
                 $query->where('finance_yr', $filter_year);
@@ -51,11 +51,11 @@ class MainSalaryEmployeeController extends Controller
                 ->paginate(12);
 
             foreach ($data as $info) {
-                $info->currentYear = Finance_calenders::where(['com_code' => $com_code, 'finance_yr' => $info->finance_yr])
+                $info->currentYear = Finance_calenders::where(['company_id' => $company_id, 'finance_yr' => $info->finance_yr])
                     ->first(['is_open']);
-                $info->counterOpenMonth = Finance_months_periods::where(['com_code' => $com_code, 'is_open' => 1])->count();
+                $info->counterOpenMonth = Finance_months_periods::where(['company_id' => $company_id, 'is_open' => 1])->count();
                 $info->counterPreviousMonthWaitingOpen = Finance_months_periods::where([
-                    'com_code' => $com_code, 'is_open' => 0, 'finance_yr' => $info->finance_yr
+                    'company_id' => $company_id, 'is_open' => 0, 'finance_yr' => $info->finance_yr
                 ])->where('month_id', '<', $info->month_id)->count();
             }
 
@@ -81,15 +81,16 @@ class MainSalaryEmployeeController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $finance_month_data = Finance_months_periods::where(['com_code' => $com_code, 'id' => $id])->first();
+            $finance_month_data = Finance_months_periods::where(['company_id' => $company_id, 'id' => $id])->first();
             if (!$finance_month_data) {
                 return response()->json(['status' => false, 'message' => 'الشهر المالي غير موجود'], 404);
             }
 
-            $query = Main_salary_employee::where(['com_code' => $com_code, 'finance_month_id' => $id])
+            $query = Main_salary_employee::where(['company_id' => $company_id, 'finance_month_id' => $id])
                 ->with([
+                    'employee:employee_code,emp_name',
                     'added:id,name',
                     'updatedby:id,name',
                 ]);
@@ -113,24 +114,24 @@ class MainSalaryEmployeeController extends Controller
 
             $salary_data = $query->orderBy('id', 'DESC')->get();
 
-            foreach ($salary_data as $item) {
-                $emp = Employee::where(['com_code' => $com_code, 'employee_code' => $item->employee_code])
-                    ->first(['emp_name', 'emp_sal', 'day_price']);
-                $item->emp_name_display = $emp ? $emp->emp_name : 'موظف غير موجود';
-            }
+            // foreach ($salary_data as $item) {
+            //     $emp = Employee::where(['company_id' => $company_id, 'employee_code' => $item->employee_code])
+            //         ->first(['emp_name', 'emp_sal', 'day_price']);
+            //     $item->emp_name_display = $emp ? $emp->emp_name : 'موظف غير موجود';
+            // }
 
             // Get all employees 
-            $allEmployees = Employee::where(['com_code' => $com_code])
+            $allEmployees = Employee::where(['company_id' => $company_id])
                 ->orderBy('emp_name')
                 ->get(['employee_code', 'emp_name', 'emp_sal', 'day_price']);
 
             // Get all active employees for the "add salary" dropdown (not already in this month)
-            // $activeEmployees = Employee::where(['com_code' => $com_code, 'functional_status' => 1])
+            // $activeEmployees = Employee::where(['company_id' => $company_id, 'functional_status' => 1])
             //     ->orderBy('emp_name')
             //     ->get(['employee_code', 'emp_name', 'emp_sal', 'day_price']);
 
-            // $existingCodes = Main_salary_employee::where(['com_code' => $com_code, 'finance_month_id' => $id])
-            $activeEmployees = Main_salary_employee::where(['com_code' => $com_code, 'finance_month_id' => $id])
+            // $existingCodes = Main_salary_employee::where(['company_id' => $company_id, 'finance_month_id' => $id])
+            $activeEmployees = Main_salary_employee::where(['company_id' => $company_id, 'finance_month_id' => $id])
                 ->pluck('employee_code');
 
             // $availableEmployees = $allEmployees->whereNotIn('employee_code', $existingCodes)->values();
@@ -154,7 +155,7 @@ class MainSalaryEmployeeController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
             $validator = Validator::make($request->all(), [
                 'finance_month_id' => 'required',
@@ -165,21 +166,21 @@ class MainSalaryEmployeeController extends Controller
             }
 
             $finance_month_data = Finance_months_periods::where([
-                'com_code' => $com_code, 'id' => $request->finance_month_id, 'is_open' => 1
+                'company_id' => $company_id, 'id' => $request->finance_month_id, 'is_open' => 1
             ])->first();
             if (!$finance_month_data) {
                 return response()->json(['status' => false, 'message' => 'الشهر المالي مغلق أو غير موجود'], 422);
             }
 
             $employee = Employee::where([
-                'com_code' => $com_code, 'employee_code' => $request->employee_code
+                'company_id' => $company_id, 'employee_code' => $request->employee_code
             ])->first();
             if (!$employee) {
                 return response()->json(['status' => false, 'message' => 'الموظف غير موجود'], 404);
             }
 
             $checkExist = Main_salary_employee::where([
-                'com_code' => $com_code,
+                'company_id' => $company_id,
                 'finance_month_id' => $request->finance_month_id,
                 'employee_code' => $request->employee_code,
             ])->count();
@@ -189,7 +190,7 @@ class MainSalaryEmployeeController extends Controller
 
             // Get last salary balance
             $lastSalary = Main_salary_employee::where([
-                'com_code' => $com_code,
+                'company_id' => $company_id,
                 'employee_code' => $employee->employee_code,
                 'is_archived' => 1,
             ])->orderBy('id', 'DESC')->first(['final_the_net_after_close']);
@@ -211,7 +212,7 @@ class MainSalaryEmployeeController extends Controller
                 'last_salary_remain_balance' => $lastBalance,
                 'year_and_month'       => $finance_month_data->year_and_month,
                 'finance_yr'           => $finance_month_data->finance_yr,
-                'com_code'             => $com_code,
+                'company_id'             => $company_id,
                 'added_by'             => $user->id,
                 'is_archived'          => 0,
                 'is_stoped'            => 0,
@@ -235,22 +236,22 @@ class MainSalaryEmployeeController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $salary = Main_salary_employee::where(['com_code' => $com_code, 'id' => $id, 'is_archived' => 0])->first();
+            $salary = Main_salary_employee::where(['company_id' => $company_id, 'id' => $id, 'is_archived' => 0])->first();
             if (!$salary) {
                 return response()->json(['status' => false, 'message' => 'سجل الراتب غير موجود أو مؤرشف'], 404);
             }
 
             $finance_month = Finance_months_periods::where([
-                'com_code' => $com_code, 'id' => $salary->finance_month_id, 'is_open' => 1
+                'company_id' => $company_id, 'id' => $salary->finance_month_id, 'is_open' => 1
             ])->first();
             if (!$finance_month) {
                 return response()->json(['status' => false, 'message' => 'لا يمكن الحذف - الشهر المالي مغلق'], 422);
             }
 
             // Check for permanent loan installments
-            $hasPloans = Main_salary_p_loans_installment::where(['com_code' => $com_code, 'main_salary_employee_id' => $id])->exists();
+            $hasPloans = Main_salary_p_loans_installment::where(['company_id' => $company_id, 'main_salary_employee_id' => $id])->exists();
             if ($hasPloans) {
                 return response()->json(['status' => false, 'message' => 'لا يمكن الحذف - يوجد أقساط مرتبطة بهذا السجل'], 422);
             }
@@ -268,17 +269,17 @@ class MainSalaryEmployeeController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
             $salary = Main_salary_employee::where([
-                'com_code' => $com_code, 'id' => $id, 'is_archived' => 0, 'is_stoped' => 0
+                'company_id' => $company_id, 'id' => $id, 'is_archived' => 0, 'is_stoped' => 0
             ])->first();
             if (!$salary) {
                 return response()->json(['status' => false, 'message' => 'سجل الراتب غير موجود أو مؤرشف أو موقوف'], 404);
             }
 
             $finance_month = Finance_months_periods::where([
-                'com_code' => $com_code, 'id' => $salary->finance_month_id, 'is_open' => 1
+                'company_id' => $company_id, 'id' => $salary->finance_month_id, 'is_open' => 1
             ])->first();
             if (!$finance_month) {
                 return response()->json(['status' => false, 'message' => 'الشهر المالي مغلق'], 422);
@@ -311,44 +312,44 @@ class MainSalaryEmployeeController extends Controller
 
             // Archive all related records in sub-tables
             Main_salary_employee_sanction::where([
-                'com_code' => $com_code, 'main_salary_employee_id' => $id,
+                'company_id' => $company_id, 'main_salary_employee_id' => $id,
                 'finance_month_periods_id' => $salary->finance_month_id
             ])->update($subArchiveData);
 
             Main_salary_employee_absence::where([
-                'com_code' => $com_code, 'main_salary_employee_id' => $id,
+                'company_id' => $company_id, 'main_salary_employee_id' => $id,
                 'finance_month_periods_id' => $salary->finance_month_id
             ])->update($subArchiveData);
 
             Main_salary_employee_discount::where([
-                'com_code' => $com_code, 'main_salary_employee_id' => $id,
+                'company_id' => $company_id, 'main_salary_employee_id' => $id,
                 'finance_month_periods_id' => $salary->finance_month_id
             ])->update($subArchiveData);
 
             Main_salary_employee_loan::where([
-                'com_code' => $com_code, 'main_salary_employee_id' => $id,
+                'company_id' => $company_id, 'main_salary_employee_id' => $id,
                 'finance_month_periods_id' => $salary->finance_month_id
             ])->update($subArchiveData);
 
             Main_salary_employee_addition::where([
-                'com_code' => $com_code, 'main_salary_employee_id' => $id,
+                'company_id' => $company_id, 'main_salary_employee_id' => $id,
                 'finance_month_periods_id' => $salary->finance_month_id
             ])->update($subArchiveData);
 
             Main_salary_employee_reward::where([
-                'com_code' => $com_code, 'main_salary_employee_id' => $id,
+                'company_id' => $company_id, 'main_salary_employee_id' => $id,
                 'finance_month_periods_id' => $salary->finance_month_id
             ])->update($subArchiveData);
 
             Main_salary_employee_allowance::where([
-                'com_code' => $com_code, 'main_salary_employee_id' => $id,
+                'company_id' => $company_id, 'main_salary_employee_id' => $id,
                 'finance_month_periods_id' => $salary->finance_month_id
             ])->update($subArchiveData);
 
             // Archive permanent loan installments
             Main_salary_p_loans_installment::where([
                 'employee_code' => $salary->employee_code,
-                'com_code' => $com_code,
+                'company_id' => $company_id,
                 'year_and_month' => $finance_month->year_and_month,
                 'is_archived' => 0,
                 'main_salary_employee_id' => $id,
@@ -368,9 +369,9 @@ class MainSalaryEmployeeController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $salary = Main_salary_employee::where(['com_code' => $com_code, 'id' => $id, 'is_archived' => 0])->first();
+            $salary = Main_salary_employee::where(['company_id' => $company_id, 'id' => $id, 'is_archived' => 0])->first();
             if (!$salary) {
                 return response()->json(['status' => false, 'message' => 'سجل الراتب غير موجود أو مؤرشف'], 404);
             }
@@ -378,7 +379,7 @@ class MainSalaryEmployeeController extends Controller
                 return response()->json(['status' => false, 'message' => 'الراتب موقوف بالفعل'], 422);
             }
 
-            Finance_months_periods::where(['com_code' => $com_code, 'id' => $salary->finance_month_id, 'is_open' => 1])
+            Finance_months_periods::where(['company_id' => $company_id, 'id' => $salary->finance_month_id, 'is_open' => 1])
                 ->firstOrFail();
 
             $salary->update(['is_stoped' => 1, 'updated_by' => $user->id]);
@@ -394,9 +395,9 @@ class MainSalaryEmployeeController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $salary = Main_salary_employee::where(['com_code' => $com_code, 'id' => $id, 'is_archived' => 0])->first();
+            $salary = Main_salary_employee::where(['company_id' => $company_id, 'id' => $id, 'is_archived' => 0])->first();
             if (!$salary) {
                 return response()->json(['status' => false, 'message' => 'سجل الراتب غير موجود أو مؤرشف'], 404);
             }
@@ -404,7 +405,7 @@ class MainSalaryEmployeeController extends Controller
                 return response()->json(['status' => false, 'message' => 'الراتب مفعّل بالفعل'], 422);
             }
 
-            Finance_months_periods::where(['com_code' => $com_code, 'id' => $salary->finance_month_id, 'is_open' => 1])
+            Finance_months_periods::where(['company_id' => $company_id, 'id' => $salary->finance_month_id, 'is_open' => 1])
                 ->firstOrFail();
 
             $salary->update(['is_stoped' => 0, 'updated_by' => $user->id]);
@@ -419,12 +420,29 @@ class MainSalaryEmployeeController extends Controller
     public function salaryDetails(Request $request, $id)
     {
         try {
+            /** @var \App\Models\User $user */
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $salary = Main_salary_employee::where(['com_code' => $com_code, 'id' => $id])->first();
+            $salary = Main_salary_employee::where(['company_id' => $company_id, 'id' => $id])->first();
             if (!$salary) {
-                return response()->json(['status' => false, 'message' => 'سجل الراتب غير موجود'], 404);
+                return response()->json(['status' => false, 'message' => __('messages.salary_record_not_found')], 404);
+            }
+
+            // Check permissions
+            // setPermissionsTeamId($company_id);
+            $canViewAny = $user->role === 'company_admin' || $user->hasPermissionTo('view_salaries') || $user->hasPermissionTo('manage_salaries');
+            $canViewOwn = $user->hasPermissionTo('view_own_salary');
+
+            if (!$canViewAny && !$canViewOwn) {
+                return response()->json(['status' => false, 'message' => __('messages.unauthorized_view_salary')], 403);
+            }
+
+            if (!$canViewAny && $canViewOwn) {
+                $userEmployeeCode = $user->employee ? $user->employee->employee_code : ($user->employee_id ? Employee::where('id', $user->employee_id)->value('employee_code') : null);
+                if (!$userEmployeeCode || $salary->employee_code != $userEmployeeCode) {
+                    return response()->json(['status' => false, 'message' => __('messages.unauthorized_view_salary')], 403);
+                }
             }
 
             if ($salary->is_archived == 0) {
@@ -432,10 +450,10 @@ class MainSalaryEmployeeController extends Controller
                 $salary->refresh();
             }
 
-            $emp = Employee::where(['com_code' => $com_code, 'employee_code' => $salary->employee_code])
+            $emp = Employee::where(['company_id' => $company_id, 'employee_code' => $salary->employee_code])
                 ->with(['department:id,name', 'job:id,name'])
                 ->first(['id', 'emp_name', 'emp_national_identity', 'emp_departments_id', 'emp_job_id']);
-            $salary->emp_name_display = $emp ? $emp->emp_name : 'غير موجود';
+            $salary->emp_name_display = $emp ? $emp->emp_name : __('messages.not_found');
             $salary->emp_national_identity = $emp ? $emp->emp_national_identity : null;
             $salary->department_name = ($emp && $emp->department) ? $emp->department->name : null;
             $salary->job_name = ($emp && $emp->job) ? $emp->job->name : null;
@@ -457,14 +475,14 @@ class MainSalaryEmployeeController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
 
-            $finance_month_data = Finance_months_periods::where(['com_code' => $com_code, 'id' => $id])->first();
+            $finance_month_data = Finance_months_periods::where(['company_id' => $company_id, 'id' => $id])->first();
             if (!$finance_month_data) {
                 return response()->json(['status' => false, 'message' => 'الشهر المالي غير موجود'], 404);
             }
 
-            $salary_data = Main_salary_employee::where(['com_code' => $com_code, 'finance_month_id' => $id])
+            $salary_data = Main_salary_employee::where(['company_id' => $company_id, 'finance_month_id' => $id])
                 ->orderBy('id', 'DESC')
                 ->get();
 
@@ -476,12 +494,12 @@ class MainSalaryEmployeeController extends Controller
             }
 
             // Reload after recalculation
-            $salary_data = Main_salary_employee::where(['com_code' => $com_code, 'finance_month_id' => $id])
+            $salary_data = Main_salary_employee::where(['company_id' => $company_id, 'finance_month_id' => $id])
                 ->orderBy('id', 'DESC')
                 ->get();
 
             foreach ($salary_data as $item) {
-                $emp = Employee::where(['com_code' => $com_code, 'employee_code' => $item->employee_code])
+                $emp = Employee::where(['company_id' => $company_id, 'employee_code' => $item->employee_code])
                     ->with(['department:id,name', 'job:id,name'])
                     ->first(['id', 'emp_name', 'emp_national_identity', 'emp_departments_id', 'emp_job_id']);
                 $item->emp_name_display = $emp ? $emp->emp_name : 'غير موجود';

@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\TenantModel;
 
-class shifts_type extends Model
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class shifts_type extends TenantModel
 {
     use HasFactory;
 
@@ -15,7 +16,7 @@ class shifts_type extends Model
         'from_time',
         'to_time',
         'total_hour',
-        'com_code',
+        'company_id',
         'added_by',
         'updated_by',
         'created_at',
@@ -23,9 +24,9 @@ class shifts_type extends Model
     ];
     
     public function added(){
-        return $this->BelongsTo('\App\Models\Admins', 'added_by');
+        return $this->BelongsTo('\App\Models\User', 'added_by');
     }
     public function updatedby(){
-        return $this->BelongsTo('\App\Models\Admins', 'updated_by');
+        return $this->BelongsTo('\App\Models\User', 'updated_by');
     }
 }

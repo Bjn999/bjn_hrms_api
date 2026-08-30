@@ -20,10 +20,10 @@ class FinanceCalendersController extends Controller
     {
         try {
             $user = $request->user();
-            $com_code = $user->com_code;
+            $company_id = $user->company_id;
             
             $data = Finance_calenders::with(['added:id,name', 'updatedby:id,name'])
-                ->where("com_code", $com_code)
+                ->where("company_id", $company_id)
                 ->orderBy('finance_yr', 'DESC')
                 ->get();
             
@@ -32,7 +32,7 @@ class FinanceCalendersController extends Controller
                 $item->counterUsed = 0; 
             }
 
-            $checkDataOpenCounter = Finance_calenders::where(["com_code" => $com_code, 'is_open' => 1])->count();
+            $checkDataOpenCounter = Finance_calenders::where(["company_id" => $company_id, 'is_open' => 1])->count();
             
             return response()->json([
                 'status' => true,
@@ -53,7 +53,7 @@ class FinanceCalendersController extends Controller
             $user = $request->user();
             
             $validator = Validator::make($request->all(), [
-                'finance_yr' => 'required|numeric|unique:finance_calenders,finance_yr,NULL,id,com_code,'.$user->com_code,
+                'finance_yr' => 'required|numeric|unique:finance_calenders,finance_yr,NULL,id,company_id,'.$user->company_id,
                 'finance_yr_desc' => 'required|string',
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after:start_date'
@@ -71,7 +71,7 @@ class FinanceCalendersController extends Controller
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
                 'added_by' => $user->id,
-                'com_code' => $user->com_code,
+                'company_id' => $user->company_id,
                 'is_open' => 0,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
@@ -103,7 +103,7 @@ class FinanceCalendersController extends Controller
                         'end_date_m' => $end_date_m,
                         'year_and_month' => date('Y-m', strtotime($date->format('Y-m-d'))),
                         'number_of_days' => round($datediff / (60*60*24)) + 1,
-                        'com_code' => $user->com_code,
+                        'company_id' => $user->company_id,
                         'added_by' => $user->id,
                         'updated_by' => $user->id,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -127,7 +127,7 @@ class FinanceCalendersController extends Controller
     {
         try {
             $user = $request->user();
-            $data = Finance_calenders::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = Finance_calenders::where(['id' => $id, 'company_id' => $user->company_id])->first();
             
             if (!$data) {
                 return response()->json(['status' => false, 'message' => 'السنة المالية غير موجودة'], 404);
@@ -137,7 +137,7 @@ class FinanceCalendersController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'finance_yr' => ['required', 'numeric', Rule::unique('finance_calenders')->where('com_code', $user->com_code)->ignore($id)],
+                'finance_yr' => ['required', 'numeric', Rule::unique('finance_calenders')->where('company_id', $user->company_id)->ignore($id)],
                 'finance_yr_desc' => 'required|string',
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after:start_date'
@@ -186,7 +186,7 @@ class FinanceCalendersController extends Controller
                         'end_date_m' => $end_date_m,
                         'year_and_month' => date('Y-m', strtotime($date->format('Y-m-d'))),
                         'number_of_days' => round($datediff / (60*60*24)) + 1,
-                        'com_code' => $user->com_code,
+                        'company_id' => $user->company_id,
                         'added_by' => $user->id,
                         'updated_by' => $user->id,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -209,7 +209,7 @@ class FinanceCalendersController extends Controller
     {
         try {
             $user = $request->user();
-            $data = Finance_calenders::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = Finance_calenders::where(['id' => $id, 'company_id' => $user->company_id])->first();
             
             if (!$data) {
                 return response()->json(['status' => false, 'message' => 'السنة المالية غير موجودة'], 404);
@@ -231,7 +231,7 @@ class FinanceCalendersController extends Controller
     {
         try {
             $user = $request->user();
-            $data = Finance_calenders::where(['id' => $id, 'com_code' => $user->com_code])->first();
+            $data = Finance_calenders::where(['id' => $id, 'company_id' => $user->company_id])->first();
             
             if (!$data) {
                 return response()->json(['status' => false, 'message' => 'السنة المالية غير موجودة'], 404);
@@ -240,7 +240,7 @@ class FinanceCalendersController extends Controller
                 return response()->json(['status' => false, 'message' => 'السنة المالية مفتوحة بالفعل'], 422);
             }
 
-            $checkDataOpen = Finance_calenders::where(['com_code' => $user->com_code, 'is_open' => 1])->first();
+            $checkDataOpen = Finance_calenders::where(['company_id' => $user->company_id, 'is_open' => 1])->first();
             if ($checkDataOpen) {
                 return response()->json(['status' => false, 'message' => 'يوجد سنة مالية مفتوحة مسبقاً، يجب إغلاقها أولاً'], 422);
             }
@@ -261,7 +261,7 @@ class FinanceCalendersController extends Controller
     {
         try {
             $user = $request->user();
-            $data = Finance_months_periods::where(['finance_calenders_id' => $id, 'com_code' => $user->com_code])->get();
+            $data = Finance_months_periods::where(['finance_calenders_id' => $id, 'company_id' => $user->company_id])->get();
             return response()->json(['status' => true, 'data' => $data]);
         } catch (\Exception $e) {
             return response()->json(['status' => false, 'message' => $e->getMessage()], 500);

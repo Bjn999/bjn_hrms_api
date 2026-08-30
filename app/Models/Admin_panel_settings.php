@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\TenantModel;
 
-class Admin_panel_settings extends Model
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Admin_panel_settings extends TenantModel
 {
     use HasFactory;
     protected $table = 'admin_panel_settings';
@@ -18,7 +19,7 @@ class Admin_panel_settings extends Model
         'email',
         'added_by',
         'updated_by',
-        'com_code',
+        'company_id',
         'after_miniute_calculate_delay',
         'after_miniute_calculate_early_departure',
         'after_miniute_quarterday',

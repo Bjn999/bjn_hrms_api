@@ -18,10 +18,12 @@ return new class extends Migration
             $table->string("notes", 300)->nullable();
             $table->integer("added_by");
             $table->integer("updated_by")->nullable();
-            $table->Integer('com_code');
+            $table->foreignUuid('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table->tinyInteger("active")->default(1);
 
             $table->timestamps();
+            $table->index(['company_id', 'created_at'], 'comp_created_idx');
+            $table->index(['company_id', 'name'], 'comp_name_idx');
         });
     }
 
