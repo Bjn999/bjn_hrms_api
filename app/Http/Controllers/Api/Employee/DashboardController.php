@@ -60,13 +60,23 @@ class DashboardController extends Controller
         }
 
         // 2. Financial & Salary Permissions
-        $hasSalaryPermission = $user->role === 'company_admin' || $user->hasPermissionTo('view_salaries') || $user->hasPermissionTo('view_own_salary');
+        $hasSalaryPermission = $user->can('view_salaries') || $user->can('view_own_salary');
 
-        if ($hasSalaryPermission && $employeeCode && $comCode && $currentMonthInfo) {
-            $salaryRecord = Main_salary_employee::where('company_id', $comCode)
-                ->where('employee_code', $employeeCode)
-                ->where('finance_month_id', $currentMonthInfo->id)
-                ->first();
+        if ($hasSalaryPermission && $employeeCode && $comCode) {
+            $salaryRecord = null;
+            if ($currentMonthInfo) {
+                $salaryRecord = Main_salary_employee::where('company_id', $comCode)
+                    ->where('employee_code', $employeeCode)
+                    ->where('finance_month_id', $currentMonthInfo->id)
+                    ->first();
+            }
+            
+            if (!$salaryRecord) {
+                $salaryRecord = Main_salary_employee::where('company_id', $comCode)
+                    ->where('employee_code', $employeeCode)
+                    ->orderBy('id', 'desc')
+                    ->first();
+            }
                 
             if ($salaryRecord) {
                 $salaryRecordId = $salaryRecord->id;
@@ -84,13 +94,27 @@ class DashboardController extends Controller
             $netSalary = (float)$employee->emp_sal;
         }
 
+        // 3. Vacations Summary
+        $vacationRemaining = 0;
+        $vacationUsed = 0;
+        $vacationPending = 0;
+        if ($employee) {
+            $balanceService = app(\App\Services\VacationBalanceService::class);
+            $bal = $balanceService->calculateForEmployee($employee, (int)date('Y'));
+            if ($bal) {
+                $vacationRemaining = (float)$bal->remaining_balance;
+                $vacationUsed = (float)$bal->used_balance;
+                $vacationPending = (float)$bal->pending_balance;
+            }
+        }
+
         return response()->json([
             'status' => true,
             'data' => [
                 'employee' => [
                     'emp_code' => $employee ? $employee->employee_code : '-',
                     'emp_name' => $employee ? $employee->emp_name : $user->name,
-                    'emp_start_date' => $employee ? $employee->date : '-',
+                    'emp_start_date' => $employee ? $employee->emp_start_date : '-',
                     'emp_salary' => $employee ? (float)$employee->emp_sal : 0,
                     'job_name' => ($employee && $employee->job) ? $employee->job->name : null,
                 ],
@@ -107,6 +131,12 @@ class DashboardController extends Controller
                     'total_benefits' => (float)$totalBenefits,
                     'total_deductions' => (float)$totalDeductions,
                     'net_salary' => (float)$netSalary,
+                ],
+                'vacations' => [
+                    'is_active' => $employee ? (bool)$employee->is_active_for_vaccation : false,
+                    'remaining_days' => $vacationRemaining,
+                    'used_days' => $vacationUsed,
+                    'pending_days' => $vacationPending,
                 ]
             ]
         ]);

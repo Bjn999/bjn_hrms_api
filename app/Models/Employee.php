@@ -82,4 +82,10 @@ class Employee extends TenantModel
     public function files(){
         return $this->hasMany('\App\Models\Employee_File', 'employee_id');
     }
+    public function vacationBalances(){
+        return $this->hasMany('\App\Models\EmployeeVacationBalance', 'employee_id');
+    }
+    public function vacationRequests(){
+        return $this->hasMany('\App\Models\VacationRequest', 'employee_id');
+    }
 }

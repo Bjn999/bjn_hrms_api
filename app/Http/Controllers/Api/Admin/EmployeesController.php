@@ -106,10 +106,27 @@ class EmployeesController extends Controller
                 'roles' => Role::whereNotIn('name', ['super_admin', 'company_admin'])->get(['id', 'name', 'display_name']),
             ];
 
+            // Add Subscription usage status
+            $company = Company::find($company_id);
+            $currentSub = $company ? $company->currentSubscription()->with('plan')->first() : null;
+            $totalEmployees = Employee::where('company_id', $company_id)->count();
+            $maxUsers = ($currentSub && $currentSub->plan) ? $currentSub->plan->max_users : 5;
+            $isUnlimited = $maxUsers >= 999999 || $maxUsers === 0;
+
+            $data['subscription_usage'] = [
+                'plan_name' => $currentSub && $currentSub->plan ? $currentSub->plan->name : 'الباقة المجانية',
+                'total_employees_count' => $totalEmployees,
+                'max_users' => $maxUsers,
+                'is_unlimited' => $isUnlimited,
+                'can_add_employee' => $isUnlimited || ($totalEmployees < $maxUsers),
+            ];
+
+
             return response()->json([
                 'status' => true,
                 'data' => $data
             ]);
+
         } catch (\Exception $e) {
             return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
         }
@@ -143,6 +160,18 @@ class EmployeesController extends Controller
                     return response()->json(['status' => false, 'message' => 'كود البصمة مسجل لموظف آخر'], 422);
                 }
             }
+
+            // Check Subscription total employees limit
+            $company = Company::find($user->company_id);
+            $currentSub = $company ? $company->currentSubscription()->with('plan')->first() : null;
+            if ($currentSub && $currentSub->plan && $currentSub->plan->max_users > 0 && $currentSub->plan->max_users < 999999) {
+                $totalEmployees = Employee::where('company_id', $user->company_id)->count();
+                if ($totalEmployees >= $currentSub->plan->max_users) {
+                    return response()->json(['status' => false, 'message' => __('messages.max_users_limit_reached')], 422);
+                }
+            }
+
+
 
             $last_employee = Employee::where('company_id', $user->company_id)->orderBy('employee_code', 'DESC')->first();
             $employee_code = $last_employee ? $last_employee->employee_code + 1 : 1;
@@ -651,6 +680,7 @@ class EmployeesController extends Controller
 
             $employeeUser->is_active = $employeeUser->is_active ? 0 : 1;
             $employeeUser->save();
+
 
             return response()->json([
                 'status' => true,

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanySetting;
+use App\Models\Employee;
+use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -108,12 +110,13 @@ class AdminPanelSettingsController extends Controller
             'phones' => 'required|string|max:255',
             'address' => 'required|string|max:255',
             'email' => 'required|email|max:255',
+            'timezone' => 'nullable|string|max:50',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
-                'message' => 'يوجد خطأ في البيانات المدخلة',
+                'message' => __('messages.server_error'),
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -124,7 +127,7 @@ class AdminPanelSettingsController extends Controller
             $company = Company::find($company_id);
             if ($company) {
                 $company->update($request->only([
-                    'company_name', 'phones', 'address', 'email'
+                    'company_name', 'phones', 'address', 'email', 'timezone'
                 ]));
             }
 
@@ -136,7 +139,7 @@ class AdminPanelSettingsController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'تم تعديل بيانات الشركة بنجاح',
+                'message' => __('messages.updated_successfully'),
                 'data' => (object) $data
             ]);
 
@@ -144,8 +147,26 @@ class AdminPanelSettingsController extends Controller
             DB::rollBack();
             return response()->json([
                 'status' => false,
-                'message' => 'حدث خطأ: ' . $ex->getMessage()
+                'message' => __('messages.server_error') . ': ' . $ex->getMessage()
             ], 500);
         }
     }
+
+    public function getSubscriptionInfo(Request $request)
+    {
+        $company_id = $request->user()->company_id;
+        $company = Company::find($company_id);
+
+        if (!$company) {
+            return response()->json(['status' => false, 'message' => __('messages.not_found')], 404);
+        }
+
+        $payload = SubscriptionService::getSubscriptionPayload($company_id);
+
+        return response()->json([
+            'status' => true,
+            'data' => $payload,
+        ]);
+    }
 }
+

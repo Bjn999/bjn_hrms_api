@@ -11,6 +11,8 @@ use App\Models\Company;
 use App\Models\CompanySetting;
 use App\Models\User;
 use App\Models\Employee;
+use App\Models\Plan;
+use App\Models\Subscription;
 use App\Services\BioTimeService;
 use Spatie\Permission\Models\Role;
 use Exception;
@@ -19,7 +21,16 @@ class CompanyController extends Controller
 {
     public function index()
     {
-        $companies = Company::orderBy('created_at', 'DESC')->get();
+        $companies = Company::with(['currentSubscription.plan', 'latestSubscription.plan'])
+            ->withCount([
+                'users as active_users_count' => function ($query) {
+                    $query->where('is_active', 1);
+                },
+                'employees as total_employees_count'
+            ])
+            ->orderBy('created_at', 'DESC')
+            ->get();
+
         return response()->json([
             'status' => true,
             'data' => $companies
@@ -50,6 +61,7 @@ class CompanyController extends Controller
                 'company_name' => $request->company_name,
                 'company_code' => $code,
                 'domain' => $request->domain,
+                'timezone' => $request->timezone ?? 'Asia/Riyadh',
                 'is_active' => 1,
             ]);
 
@@ -109,12 +121,29 @@ class CompanyController extends Controller
             // 6. Create the Manager in BioTime
             $bioTimeService->createEmployee($employee->employee_code, $employee->emp_name, $company->company_code);
 
+            // 7. Assign Initial Free Plan Subscription
+            $freePlan = Plan::where('slug', 'free')->first() ?? Plan::first();
+            if ($freePlan) {
+                Subscription::create([
+                    'company_id' => $company->id,
+                    'plan_id' => $freePlan->id,
+                    'start_date' => now(),
+                    'end_date' => null,
+
+                    'billing_cycle' => 'free',
+                    'price' => 0.00,
+                    'currency' => 'USD',
+                    'status' => 'active',
+                    'notes' => 'اشتراك تلقائي في الباقة المجانية عند إنشاء الشركة',
+                    'created_by' => auth()->id(),
+                ]);
+            }
 
             DB::commit();
 
             return response()->json([
                 'status' => true,
-                'message' => 'تم إنشاء الشركة وحساب المدير وربطها بنظام البصمة بنجاح',
+                'message' => __('messages.company_created'),
             ]);
         } catch (Exception $e) {
             DB::rollBack();
@@ -145,14 +174,15 @@ class CompanyController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'تم تحديث بيانات الشركة بنجاح',
+                'message' => __('messages.updated_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating company: ' . $e->getMessage());
             return response()->json([
                 'status' => false,
-                'message' => 'حدث خطأ أثناء تحديث الشركة',
+                'message' => __('messages.server_error'),
             ], 500);
         }
     }
 }
+

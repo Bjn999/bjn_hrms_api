@@ -429,18 +429,19 @@ class MainSalaryEmployeeController extends Controller
                 return response()->json(['status' => false, 'message' => __('messages.salary_record_not_found')], 404);
             }
 
-            // Check permissions
-            // setPermissionsTeamId($company_id);
-            $canViewAny = $user->role === 'company_admin' || $user->hasPermissionTo('view_salaries') || $user->hasPermissionTo('manage_salaries');
-            $canViewOwn = $user->hasPermissionTo('view_own_salary');
+            // Check permissions based on capabilities, not hardcoded roles
+            $canViewAny = $user->can('view_salaries') || $user->can('view_salary_slips');
+            $canViewOwn = $user->can('view_own_salary');
 
             if (!$canViewAny && !$canViewOwn) {
                 return response()->json(['status' => false, 'message' => __('messages.unauthorized_view_salary')], 403);
             }
 
+            // If the user only has permission to view their own salary, enforce ownership check
             if (!$canViewAny && $canViewOwn) {
-                $userEmployeeCode = $user->employee ? $user->employee->employee_code : ($user->employee_id ? Employee::where('id', $user->employee_id)->value('employee_code') : null);
-                if (!$userEmployeeCode || $salary->employee_code != $userEmployeeCode) {
+                $userEmployee = $user->employee_id ? Employee::find($user->employee_id) : null;
+                $userEmployeeCode = $userEmployee ? $userEmployee->employee_code : null;
+                if (!$userEmployeeCode || (string)$salary->employee_code !== (string)$userEmployeeCode) {
                     return response()->json(['status' => false, 'message' => __('messages.unauthorized_view_salary')], 403);
                 }
             }
