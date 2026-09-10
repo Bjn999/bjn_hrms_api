@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Notifications\TestBroadcastNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class NotificationController extends Controller
 {
@@ -168,12 +171,23 @@ class NotificationController extends Controller
         $message = $request->input('message');
         $actionUrl = $request->input('action_url', '/portal');
 
-        $user->notifyNow(new \App\Notifications\TestBroadcastNotification($title, $message, $actionUrl));
+        try {
+            $user->notifyNow(new TestBroadcastNotification($title, $message, $actionUrl));
 
-        return response()->json([
-            'status' => true,
-            'message' => __('messages.test_notification_sent'),
-            'unread_count' => $user->unreadNotifications()->count(),
-        ]);
+            return response()->json([
+                'status' => true,
+                'message' => __('messages.test_notification_sent'),
+                'unread_count' => $user->unreadNotifications()->count(),
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Broadcast notification error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Notification broadcast failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }
