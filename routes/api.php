@@ -2,46 +2,74 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\Admin\AdminPanelSettingsController;
-use App\Http\Controllers\Api\Admin\FinanceCalendersController;
-use App\Http\Controllers\Api\Admin\BranchesController;
-use App\Http\Controllers\Api\Admin\ShiftsController;
-use App\Http\Controllers\Api\Admin\DepartmentsController;
-use App\Http\Controllers\Api\Admin\JobsCategoriesController;
-use App\Http\Controllers\Api\Admin\QualificationsController;
-use App\Http\Controllers\Api\Admin\OccasionsController;
-use App\Http\Controllers\Api\Admin\ResignationsController;
-use App\Http\Controllers\Api\Admin\NationalitiesController;
-use App\Http\Controllers\Api\Admin\SalaryRecordsController;
-use App\Http\Controllers\Api\Admin\ReligionsController;
-use App\Http\Controllers\Api\Admin\BloodGroupsController;
-use App\Http\Controllers\Api\Admin\CountriesController;
-use App\Http\Controllers\Api\Admin\GovernoratesController;
-use App\Http\Controllers\Api\Admin\CentersController;
-use App\Http\Controllers\Api\Admin\EmployeesController;
-use App\Http\Controllers\Api\Admin\RolesController;
-use App\Http\Controllers\Api\Admin\AdditionalSalTypesController;
-use App\Http\Controllers\Api\Admin\DiscountSalTypesController;
-use App\Http\Controllers\Api\Admin\AllowancesController;
-use App\Http\Controllers\Api\Admin\MainSalaryEmployeeSanctionsController;
-use App\Http\Controllers\Api\Admin\MainSalaryEmployeeAbsencesController;
-use App\Http\Controllers\Api\Admin\MainSalaryEmployeeDiscountsController;
-use App\Http\Controllers\Api\Admin\MainSalaryEmployeeLoansController;
-use App\Http\Controllers\Api\Admin\MainSalaryEmployeePermanentLoansController;
-use App\Http\Controllers\Api\Admin\MainSalaryEmployeeAdditionsController;
-use App\Http\Controllers\Api\Admin\MainSalaryEmployeeRewardsController;
-use App\Http\Controllers\Api\Admin\MainSalaryEmployeeAllowancesController;
-use App\Http\Controllers\Api\Admin\MainSalaryEmployeeController;
-use App\Http\Controllers\Api\Admin\LanguagesController;
-use App\Http\Controllers\Api\Admin\AttendancesController;
-use App\Http\Controllers\Api\Admin\AttendanceRawLogsController;
-use App\Http\Controllers\Api\Admin\VacationTypesController;
-use App\Http\Controllers\Api\Admin\VacationBalancesController;
-use App\Http\Controllers\Api\Admin\VacationRequestsController;
-use App\Http\Controllers\Api\AuthController as UnifiedAuthController;
-use App\Http\Controllers\Api\NotificationController;
 use Illuminate\Support\Facades\Broadcast;
 
+// ==========================================
+// 1. Unified Auth & Core Controllers
+// ==========================================
+use App\Http\Controllers\Api\AuthController as UnifiedAuthController;
+use App\Http\Controllers\Api\NotificationController as UnifiedNotificationController;
+
+// ==========================================
+// 2. Super Admin Controllers (SaaS Platform)
+// ==========================================
+use App\Http\Controllers\Api\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use App\Http\Controllers\Api\SuperAdmin\CompanyController as SuperAdminCompanyController;
+use App\Http\Controllers\Api\SuperAdmin\PlanController as SuperAdminPlanController;
+use App\Http\Controllers\Api\SuperAdmin\FeatureController as SuperAdminFeatureController;
+use App\Http\Controllers\Api\SuperAdmin\CompanySubscriptionController as SuperAdminCompanySubscriptionController;
+use App\Http\Controllers\Api\SuperAdmin\SubscriptionUpgradeRequestController as SuperAdminSubscriptionUpgradeRequestController;
+
+// ==========================================
+// 3. Company Admin / HR Controllers
+// ==========================================
+use App\Http\Controllers\Api\Company\Admin\AdminPanelSettingsController;
+use App\Http\Controllers\Api\Company\Admin\SubscriptionUpgradeRequestController as CompanySubscriptionUpgradeRequestController;
+use App\Http\Controllers\Api\Company\Admin\FinanceCalendersController;
+use App\Http\Controllers\Api\Company\Admin\BranchesController;
+use App\Http\Controllers\Api\Company\Admin\ShiftsController;
+use App\Http\Controllers\Api\Company\Admin\DepartmentsController;
+use App\Http\Controllers\Api\Company\Admin\JobsCategoriesController;
+use App\Http\Controllers\Api\Company\Admin\QualificationsController;
+use App\Http\Controllers\Api\Company\Admin\OccasionsController;
+use App\Http\Controllers\Api\Company\Admin\ResignationsController;
+use App\Http\Controllers\Api\Company\Admin\NationalitiesController;
+use App\Http\Controllers\Api\Company\Admin\SalaryRecordsController;
+use App\Http\Controllers\Api\Company\Admin\ReligionsController;
+use App\Http\Controllers\Api\Company\Admin\BloodGroupsController;
+use App\Http\Controllers\Api\Company\Admin\CountriesController;
+use App\Http\Controllers\Api\Company\Admin\GovernoratesController;
+use App\Http\Controllers\Api\Company\Admin\CentersController;
+use App\Http\Controllers\Api\Company\Admin\EmployeesController;
+use App\Http\Controllers\Api\Company\Admin\RolesController;
+use App\Http\Controllers\Api\Company\Admin\AdditionalSalTypesController;
+use App\Http\Controllers\Api\Company\Admin\DiscountSalTypesController;
+use App\Http\Controllers\Api\Company\Admin\AllowancesController;
+use App\Http\Controllers\Api\Company\Admin\MainSalaryEmployeeSanctionsController;
+use App\Http\Controllers\Api\Company\Admin\MainSalaryEmployeeAbsencesController;
+use App\Http\Controllers\Api\Company\Admin\MainSalaryEmployeeDiscountsController;
+use App\Http\Controllers\Api\Company\Admin\MainSalaryEmployeeLoansController;
+use App\Http\Controllers\Api\Company\Admin\MainSalaryEmployeePermanentLoansController;
+use App\Http\Controllers\Api\Company\Admin\MainSalaryEmployeeAdditionsController;
+use App\Http\Controllers\Api\Company\Admin\MainSalaryEmployeeRewardsController;
+use App\Http\Controllers\Api\Company\Admin\MainSalaryEmployeeAllowancesController;
+use App\Http\Controllers\Api\Company\Admin\MainSalaryEmployeeController;
+use App\Http\Controllers\Api\Company\Admin\LanguagesController;
+use App\Http\Controllers\Api\Company\Admin\AttendancesController as AdminAttendancesController;
+use App\Http\Controllers\Api\Company\Admin\AttendanceRawLogsController;
+use App\Http\Controllers\Api\Company\Admin\VacationTypesController;
+use App\Http\Controllers\Api\Company\Admin\VacationBalancesController;
+use App\Http\Controllers\Api\Company\Admin\VacationRequestsController;
+
+// ==========================================
+// 4. Company Employee Controllers (Web Portal & Mobile App)
+// ==========================================
+use App\Http\Controllers\Api\Company\Employee\AttendanceController as EmployeeAttendanceController;
+use App\Http\Controllers\Api\Company\Employee\DashboardController as EmployeeDashboardController;
+
+// ==========================================
+// Public Routes
+// ==========================================
 Route::post('/login', [UnifiedAuthController::class, 'login']);
 Route::post('/register', [UnifiedAuthController::class, 'registerCompany']);
 Route::get('/public-plans', function() {
@@ -52,9 +80,19 @@ Route::get('/public-plans', function() {
     return response()->json(['status' => true, 'data' => $plans]);
 });
 
+// ==========================================
+// Authenticated Shared & Employee Routes (Web Portal & Mobile)
+// ==========================================
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UnifiedAuthController::class, 'user']);
-    Route::get('/user/personal-dashboard', [\App\Http\Controllers\Api\Employee\DashboardController::class, 'index'])->middleware('permission:view_dashboard');
+    Route::get('/user/personal-dashboard', [EmployeeDashboardController::class, 'index'])->middleware('permission:view_dashboard');
+    
+    // Employee Attendance APIs (Mobile Punch & Web ESS)
+    Route::get('/user/attendance/today', [EmployeeAttendanceController::class, 'todayStatus'])->middleware('permission:view_dashboard');
+    Route::post('/user/attendance/punch', [EmployeeAttendanceController::class, 'punch'])->middleware('permission:view_dashboard');
+    Route::get('/user/attendance/my-records', [EmployeeAttendanceController::class, 'myAttendance'])->middleware('permission:view_dashboard');
+
+    // Vacations (Employee Self-Service)
     Route::get('/user/vacation-types', [VacationTypesController::class, 'index'])->middleware('permission:view_dashboard');
     Route::get('/user/my-vacations', [VacationRequestsController::class, 'myRequests'])->middleware('permission:view_dashboard');
     Route::post('/user/vacation-requests', [VacationRequestsController::class, 'store'])->middleware('permission:view_dashboard');
@@ -68,14 +106,17 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Notifications (Unified In-App Notifications API)
-    Route::get('/notifications', [NotificationController::class, 'index']);
-    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
-    Route::post('/notifications/test-broadcast', [NotificationController::class, 'testBroadcast']);
-    Route::post('/notifications/{id}/mark-as-read', [NotificationController::class, 'markAsRead']);
-    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
-    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::get('/notifications', [UnifiedNotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [UnifiedNotificationController::class, 'unreadCount']);
+    Route::post('/notifications/test-broadcast', [UnifiedNotificationController::class, 'testBroadcast']);
+    Route::post('/notifications/{id}/mark-as-read', [UnifiedNotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [UnifiedNotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [UnifiedNotificationController::class, 'destroy']);
 });
 
+// ==========================================
+// Company Admin / HR Management Routes
+// ==========================================
 Route::prefix('admin')->group(function() {
     Route::middleware(['auth:sanctum', 'subscription.active'])->group(function () {
         // Settings
@@ -83,8 +124,8 @@ Route::prefix('admin')->group(function() {
         Route::post('/generalSettings', [AdminPanelSettingsController::class, 'update'])->middleware('permission:edit_settings');
         Route::post('/companyProfile', [AdminPanelSettingsController::class, 'updateCompanyProfile'])->middleware('permission:edit_settings');
         Route::get('/company-subscription', [AdminPanelSettingsController::class, 'getSubscriptionInfo']);
-        Route::get('/subscription-upgrade-requests', [\App\Http\Controllers\Api\Company\SubscriptionUpgradeRequestController::class, 'index']);
-        Route::post('/subscription-upgrade-requests', [\App\Http\Controllers\Api\Company\SubscriptionUpgradeRequestController::class, 'store']);
+        Route::get('/subscription-upgrade-requests', [CompanySubscriptionUpgradeRequestController::class, 'index']);
+        Route::post('/subscription-upgrade-requests', [CompanySubscriptionUpgradeRequestController::class, 'store']);
 
         // Finance Calendars
         Route::get('/finance-calendars', [FinanceCalendersController::class, 'index'])->middleware('permission:view_finance_calendars');
@@ -141,7 +182,7 @@ Route::prefix('admin')->group(function() {
         Route::post('/vacation-balances/recalculate', [VacationBalancesController::class, 'recalculate'])->middleware('permission:edit_occasions|edit_employees');
         Route::put('/vacation-balances/{id}', [VacationBalancesController::class, 'update'])->middleware('permission:edit_occasions|edit_employees');
 
-        // Vacation Requests (Admin / HR / Employee)
+        // Vacation Requests (Admin / HR / Approvals)
         Route::get('/vacation-requests', [VacationRequestsController::class, 'index'])->middleware('permission:view_dashboard|view_occasions|view_employees');
         Route::post('/vacation-requests', [VacationRequestsController::class, 'store'])->middleware('permission:view_dashboard|create_occasions|create_employees');
         Route::post('/vacation-requests/{id}/approve', [VacationRequestsController::class, 'approve'])->middleware('permission:edit_occasions|edit_employees');
@@ -215,14 +256,14 @@ Route::prefix('admin')->group(function() {
         Route::delete('employees/files/{id}', [EmployeesController::class, 'deleteFile'])->middleware('permission:edit_employees');
         Route::get('employees/{id}/salary-archive', [EmployeesController::class, 'getSalaryArchive'])->middleware('permission:edit_employee_financials|view_employees');
 
-        // Attendances & BioTime
-        Route::get('attendances', [AttendancesController::class, 'index'])->middleware('permission:view_attendances');
-        Route::get('attendances/{id}', [AttendancesController::class, 'show'])->middleware('permission:view_attendances');
-        Route::get('attendances/{month_id}/employee/{employee_code}', [AttendancesController::class, 'employeeAttendance'])->middleware('permission:view_attendances');
+        // Attendances & BioTime Management
+        Route::get('attendances', [AdminAttendancesController::class, 'index'])->middleware('permission:view_attendances');
+        Route::get('attendances/{id}', [AdminAttendancesController::class, 'show'])->middleware('permission:view_attendances');
+        Route::get('attendances/{month_id}/employee/{employee_code}', [AdminAttendancesController::class, 'employeeAttendance'])->middleware('permission:view_attendances');
         Route::get('attendance-raw-logs', [AttendanceRawLogsController::class, 'index'])->middleware('permission:view_attendances');
-        Route::post('attendances/{month_id}/sync-biotime', [AttendancesController::class, 'syncBioTime'])->middleware('permission:sync_biotime');
-        Route::post('attendances/{month_id}/extract', [AttendancesController::class, 'extractMonthActions'])->middleware('permission:create_attendances|edit_attendances');
-        Route::post('attendances/{month_id}/employee/{employee_code}/extract', [AttendancesController::class, 'extractEmployeeActions'])->middleware('permission:create_attendances|edit_attendances');
+        Route::post('attendances/{month_id}/sync-biotime', [AdminAttendancesController::class, 'syncBioTime'])->middleware('permission:sync_biotime');
+        Route::post('attendances/{month_id}/extract', [AdminAttendancesController::class, 'extractMonthActions'])->middleware('permission:create_attendances|edit_attendances');
+        Route::post('attendances/{month_id}/employee/{employee_code}/extract', [AdminAttendancesController::class, 'extractEmployeeActions'])->middleware('permission:create_attendances|edit_attendances');
 
         // Types Catalogs
         Route::get('reward-sal-types', [AdditionalSalTypesController::class, 'index'])->middleware('permission:view_reward_types|view_rewards|view_employees');
@@ -316,24 +357,26 @@ Route::prefix('admin')->group(function() {
     });
 });
 
-// Super Admin Routes
+// ==========================================
+// Super Admin Routes (SaaS Platform Management)
+// ==========================================
 Route::prefix('super-admin')->middleware(['auth:sanctum'])->group(function() {
-    Route::get('/dashboard', [\App\Http\Controllers\Api\SuperAdmin\DashboardController::class, 'index']);
-    Route::apiResource('/companies', \App\Http\Controllers\Api\SuperAdmin\CompanyController::class);
+    Route::get('/dashboard', [SuperAdminDashboardController::class, 'index']);
+    Route::apiResource('/companies', SuperAdminCompanyController::class);
 
     // SaaS Plans & Subscriptions
-    Route::apiResource('/plans', \App\Http\Controllers\Api\SuperAdmin\PlanController::class);
-    Route::post('/plans/{id}/features', [\App\Http\Controllers\Api\SuperAdmin\PlanController::class, 'updatePlanFeatures']);
-    Route::apiResource('/features', \App\Http\Controllers\Api\SuperAdmin\FeatureController::class);
+    Route::apiResource('/plans', SuperAdminPlanController::class);
+    Route::post('/plans/{id}/features', [SuperAdminPlanController::class, 'updatePlanFeatures']);
+    Route::apiResource('/features', SuperAdminFeatureController::class);
 
     // Company Subscription & Details
-    Route::get('/companies/{id}/details', [\App\Http\Controllers\Api\SuperAdmin\CompanySubscriptionController::class, 'show']);
-    Route::post('/companies/{id}/subscriptions', [\App\Http\Controllers\Api\SuperAdmin\CompanySubscriptionController::class, 'storeSubscription']);
-    Route::put('/subscriptions/{id}/status', [\App\Http\Controllers\Api\SuperAdmin\CompanySubscriptionController::class, 'updateSubscriptionStatus']);
+    Route::get('/companies/{id}/details', [SuperAdminCompanySubscriptionController::class, 'show']);
+    Route::post('/companies/{id}/subscriptions', [SuperAdminCompanySubscriptionController::class, 'storeSubscription']);
+    Route::put('/subscriptions/{id}/status', [SuperAdminCompanySubscriptionController::class, 'updateSubscriptionStatus']);
 
     // SaaS Subscriptions & Upgrade Requests Management
-    Route::get('/subscription-requests', [\App\Http\Controllers\Api\SuperAdmin\SubscriptionUpgradeRequestController::class, 'index']);
-    Route::post('/subscription-requests/{id}/approve', [\App\Http\Controllers\Api\SuperAdmin\SubscriptionUpgradeRequestController::class, 'approve']);
-    Route::post('/subscription-requests/{id}/reject', [\App\Http\Controllers\Api\SuperAdmin\SubscriptionUpgradeRequestController::class, 'reject']);
-    Route::get('/company-subscriptions-list', [\App\Http\Controllers\Api\SuperAdmin\SubscriptionUpgradeRequestController::class, 'companySubscriptionsList']);
+    Route::get('/subscription-requests', [SuperAdminSubscriptionUpgradeRequestController::class, 'index']);
+    Route::post('/subscription-requests/{id}/approve', [SuperAdminSubscriptionUpgradeRequestController::class, 'approve']);
+    Route::post('/subscription-requests/{id}/reject', [SuperAdminSubscriptionUpgradeRequestController::class, 'reject']);
+    Route::get('/company-subscriptions-list', [SuperAdminSubscriptionUpgradeRequestController::class, 'companySubscriptionsList']);
 });

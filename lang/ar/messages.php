@@ -109,5 +109,20 @@ return [
     'notification_sub_expired_message' => 'لقد انتهى اشتراك شركتكم في باقة :plan بتاريخ (:date) وتم إيقاف خدمات النظام مؤقتاً. يرجى التجديد الفوري لاستعادة الخدمة.',
     'subscription_expired_access_denied' => 'تم إيقاف خدمات النظام لانتهاء صلاحية اشتراك الشركة. يرجى مراجعة الدعم الفني أو تجديد الاشتراك لتفعيل الحساب.',
     'subscription_expired_login_blocked' => 'تم إيقاف إمكانية تسجيل الدخول لانتهاء اشتراك شركتكم. يرجى مراجعة الدعم الفني.',
+
+    // Mobile & Biometric Attendance
+    'branch_coordinates_not_configured' => 'إحداثيات موقع الفرع الجغرافي غير محددة بالنظام، يرجى مراجعة إدارة الشركة',
+    'outside_geofence_range' => 'عفواً، أنت متواجد خارج نطاق موقع العمل (:branch). المسافة الحالية :distance متر (النطاق المسموح به: :allowed متر)',
+    'checkin_successful' => 'تم تسجيل حضورك بنجاح 🟢',
+    'checkout_successful' => 'تم تسجيل انصرافك بنجاح 🔴',
+    'punch_duplicate_spammed' => 'تم تسجيل البصمة بالفعل منذ لحظات، يرجى الانتظار دقيقة واحدة قبل المحاولة مجدداً',
+    'no_active_finance_month' => 'لا يوجد شهر مالي متاح للشركة حالياً',
+    'employee_branch_not_found' => 'لم يتم تعيين فرع عمل لهذا الموظف',
+    'checkin' => 'حضور',
+    'checkout' => 'انصراف',
+    'present' => 'حاضر',
+    'absent' => 'غائب',
+    'vacation' => 'إجازة',
+    'unrecorded' => 'غير مسجل',
 ];
 

@@ -112,6 +112,21 @@ return [
     'notification_sub_expired_message' => 'Your company subscription for :plan plan expired on :date and system services have been paused. Please renew immediately to restore access.',
     'subscription_expired_access_denied' => 'System services have been suspended due to an expired subscription. Please contact support or renew your subscription to reactivate access.',
     'subscription_expired_login_blocked' => 'Login is disabled because your company subscription has expired. Please contact technical support.',
+
+    // Mobile & Biometric Attendance
+    'branch_coordinates_not_configured' => 'Branch GPS coordinates are not configured in the system. Please contact company admin.',
+    'outside_geofence_range' => 'Sorry, you are outside the geofenced workplace area (:branch). Current distance is :distance meters (allowed radius: :allowed meters)',
+    'checkin_successful' => 'Check-in recorded successfully 🟢',
+    'checkout_successful' => 'Check-out recorded successfully 🔴',
+    'punch_duplicate_spammed' => 'Punch was already recorded moments ago. Please wait 1 minute before trying again.',
+    'no_active_finance_month' => 'No active finance month period found for the company.',
+    'employee_branch_not_found' => 'No branch assigned to this employee.',
+    'checkin' => 'Check-in',
+    'checkout' => 'Check-out',
+    'present' => 'Present',
+    'absent' => 'Absent',
+    'vacation' => 'Vacation',
+    'unrecorded' => 'Unrecorded',
 ];
 
 

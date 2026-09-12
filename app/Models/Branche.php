@@ -16,11 +16,21 @@ class Branche extends TenantModel
         'phones',
         'email',
         'active',
+        'latitude',
+        'longitude',
+        'geofence_radius',
         'added_by',
         'updated_by',
         'company_id',
         'created_at',
         'updated_at'
+    ];
+
+    protected $casts = [
+        'latitude' => 'float',
+        'longitude' => 'float',
+        'geofence_radius' => 'integer',
+        'active' => 'integer',
     ];
     
     public function added(){
