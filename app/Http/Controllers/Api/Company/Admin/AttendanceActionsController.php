@@ -43,7 +43,11 @@ class AttendanceActionsController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'finance_months_periods_id' => 'required|integer',
-                'attendance_id' => 'required|integer|exists:attendances,id',
+                'attendance_id' => [
+                    'required',
+                    'integer',
+                    \Illuminate\Validation\Rule::exists('attendances', 'id')->where('company_id', $user->company_id),
+                ],
                 'employee_code' => 'required|integer',
                 'actionDateTime' => 'required|date_format:Y-m-d H:i:s',
                 'actionType' => 'required|integer',
@@ -54,7 +58,17 @@ class AttendanceActionsController extends Controller
                 return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
             }
 
-            $action = AttendanceAction::create(array_merge($request->all(), [
+            $allowed = $request->only([
+                'finance_months_periods_id',
+                'attendance_id',
+                'employee_code',
+                'actionDateTime',
+                'actionType',
+                'actionMethod',
+                'notes',
+            ]);
+
+            $action = AttendanceAction::create(array_merge($allowed, [
                 'company_id' => $user->company_id,
                 'added_by' => $user->id,
             ]));
@@ -112,7 +126,16 @@ class AttendanceActionsController extends Controller
                 return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
             }
 
-            $action->update(array_merge($request->all(), [
+            $allowed = $request->only([
+                'actionDateTime',
+                'actionType',
+                'actionMethod',
+                'it_is_active_with_parent',
+                'is_processed',
+                'notes',
+            ]);
+
+            $action->update(array_merge($allowed, [
                 'updated_by' => $user->id,
             ]));
 

@@ -20,6 +20,7 @@ class CheckSubscriptionStatus
         'notifications',
         'profile',
         'generalSettings',
+        'broadcasting/auth',
     ];
 
     /**
@@ -28,6 +29,14 @@ class CheckSubscriptionStatus
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+
+        if ($user && !$user->is_active) {
+            $user->currentAccessToken()?->delete();
+            return response()->json([
+                'status' => false,
+                'message' => __('messages.account_disabled')
+            ], 403);
+        }
 
         // Bypass check for unauthenticated, super admins, or users without company
         if (!$user || $user->role === 'super_admin' || !$user->company_id) {
@@ -38,6 +47,10 @@ class CheckSubscriptionStatus
 
         // If subscription is expired (Services paused)
         if ($status['is_expired']) {
+            if ($request->is('api/user')) {
+                return $next($request);
+            }
+
             // Check if current route is in the whitelist (e.g. renewing subscription or viewing subscription status)
             foreach ($this->allowedSegments as $segment) {
                 if (str_contains($request->path(), $segment)) {

@@ -127,6 +127,7 @@ return [
     'absent' => 'Absent',
     'vacation' => 'Vacation',
     'unrecorded' => 'Unrecorded',
+    'employee_password_reset_success' => 'Employee password updated successfully',
 ];
 
 

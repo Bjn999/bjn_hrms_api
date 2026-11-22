@@ -26,18 +26,26 @@ class CheckPermission
             ], 401);
         }
 
+        if (!$user->is_active) {
+            $user->currentAccessToken()?->delete();
+            return response()->json([
+                'status' => false,
+                'message' => __('messages.account_disabled')
+            ], 403);
+        }
+
         // Super Admin & Company Admin are granted full access via Gate::before
         if ($user->role === 'super_admin' || $user->role === 'company_admin') {
             return $next($request);
         }
 
-        // Support multiple permissions separated by pipe '|' (OR logic) or comma ',' (AND logic)
+        // Support multiple permissions separated by pipe '|' (OR logic)
         $permissions = explode('|', $permission);
         $hasPermission = false;
 
         foreach ($permissions as $perm) {
             $perm = trim($perm);
-            if (Gate::allows($perm) || $user->hasPermissionTo($perm)) {
+            if ($perm !== '' && (Gate::allows($perm) || $user->checkPermissionTo($perm))) {
                 $hasPermission = true;
                 break;
             }

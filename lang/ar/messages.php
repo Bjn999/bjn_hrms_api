@@ -23,6 +23,8 @@ return [
     'employee_no_login_account' => 'هذا الموظف ليس لديه حساب تسجيل دخول',
     'employee_login_activated' => 'تم تفعيل حساب الموظف بنجاح',
     'employee_login_deactivated' => 'تم تعطيل حساب الموظف بنجاح',
+    'employee_file_added' => 'تم إضافة الملف بنجاح',
+    'employee_file_deleted' => 'تم حذف الملف بنجاح',
     // Roles & Permissions
     'cannot_assign_company_admin_role' => 'لا يمكن إسناد دور مدير الشركة أو مدير النظام للموظفين',
 
@@ -124,5 +126,6 @@ return [
     'absent' => 'غائب',
     'vacation' => 'إجازة',
     'unrecorded' => 'غير مسجل',
+    'employee_password_reset_success' => 'تم تحديث كلمة مرور الموظف بنجاح',
 ];
 

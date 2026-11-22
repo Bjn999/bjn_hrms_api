@@ -70,8 +70,8 @@ use App\Http\Controllers\Api\Company\Employee\DashboardController as EmployeeDas
 // ==========================================
 // Public Routes
 // ==========================================
-Route::post('/login', [UnifiedAuthController::class, 'login']);
-Route::post('/register', [UnifiedAuthController::class, 'registerCompany']);
+Route::post('/login', [UnifiedAuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('/register', [UnifiedAuthController::class, 'registerCompany'])->middleware('throttle:5,1');
 Route::get('/public-plans', function() {
     $plans = \App\Models\Plan::where('is_active', true)
         ->orderBy('sort_order', 'asc')
@@ -83,7 +83,7 @@ Route::get('/public-plans', function() {
 // ==========================================
 // Authenticated Shared & Employee Routes (Web Portal & Mobile)
 // ==========================================
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'subscription.active'])->group(function () {
     Route::get('/user', [UnifiedAuthController::class, 'user']);
     Route::get('/user/personal-dashboard', [EmployeeDashboardController::class, 'index'])->middleware('permission:view_dashboard');
     
@@ -123,9 +123,9 @@ Route::prefix('admin')->group(function() {
         Route::get('/generalSettings', [AdminPanelSettingsController::class, 'index'])->middleware('permission:view_settings');
         Route::post('/generalSettings', [AdminPanelSettingsController::class, 'update'])->middleware('permission:edit_settings');
         Route::post('/companyProfile', [AdminPanelSettingsController::class, 'updateCompanyProfile'])->middleware('permission:edit_settings');
-        Route::get('/company-subscription', [AdminPanelSettingsController::class, 'getSubscriptionInfo']);
-        Route::get('/subscription-upgrade-requests', [CompanySubscriptionUpgradeRequestController::class, 'index']);
-        Route::post('/subscription-upgrade-requests', [CompanySubscriptionUpgradeRequestController::class, 'store']);
+        Route::get('/company-subscription', [AdminPanelSettingsController::class, 'getSubscriptionInfo'])->middleware('permission:view_settings|edit_settings');
+        Route::get('/subscription-upgrade-requests', [CompanySubscriptionUpgradeRequestController::class, 'index'])->middleware('permission:view_settings|edit_settings');
+        Route::post('/subscription-upgrade-requests', [CompanySubscriptionUpgradeRequestController::class, 'store'])->middleware('permission:edit_settings');
 
         // Finance Calendars
         Route::get('/finance-calendars', [FinanceCalendersController::class, 'index'])->middleware('permission:view_finance_calendars');
@@ -249,6 +249,7 @@ Route::prefix('admin')->group(function() {
         Route::put('employees/{id}', [EmployeesController::class, 'update'])->middleware('permission:edit_employees');
         Route::delete('employees/{id}', [EmployeesController::class, 'destroy'])->middleware('permission:delete_employees');
         Route::post('employees/{id}/toggle-login', [EmployeesController::class, 'toggleLogin'])->middleware('permission:toggle_employee_login');
+        Route::post('employees/{id}/reset-password', [EmployeesController::class, 'resetPassword'])->middleware('permission:edit_employees|toggle_employee_login');
         Route::post('employees/{id}/fixed-allowances', [EmployeesController::class, 'addFixedAllowance'])->middleware('permission:edit_employee_financials');
         Route::put('employees/fixed-allowances/{id}', [EmployeesController::class, 'updateFixedAllowance'])->middleware('permission:edit_employee_financials');
         Route::delete('employees/fixed-allowances/{id}', [EmployeesController::class, 'deleteFixedAllowance'])->middleware('permission:edit_employee_financials');
@@ -360,7 +361,7 @@ Route::prefix('admin')->group(function() {
 // ==========================================
 // Super Admin Routes (SaaS Platform Management)
 // ==========================================
-Route::prefix('super-admin')->middleware(['auth:sanctum'])->group(function() {
+Route::prefix('super-admin')->middleware(['auth:sanctum', 'super_admin'])->group(function() {
     Route::get('/dashboard', [SuperAdminDashboardController::class, 'index']);
     Route::apiResource('/companies', SuperAdminCompanyController::class);
 

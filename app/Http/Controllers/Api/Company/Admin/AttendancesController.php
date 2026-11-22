@@ -185,8 +185,9 @@ class AttendancesController extends Controller
 
             // Call BioTime Service
             $bioTimeService = new BioTimeService();
-            // Use company_id cast to int as the area code in BioTime, matching createEmployee behavior
-            $transactions = $bioTimeService->fetchTransactions($startDate, $endDate, (int)$company_id);
+            $company = \App\Models\Company::find($company_id);
+            $areaCode = $company && $company->company_code ? $company->company_code : $company_id;
+            $transactions = $bioTimeService->fetchTransactions($startDate, $endDate, $areaCode);
 
             $successCount = 0;
             $ignoredDuplicate = 0;
@@ -391,7 +392,8 @@ class AttendancesController extends Controller
         }
 
         // Get settings to check delay & early departure configuration
-        $settings = DB::table('admin_panel_settings')->where('company_id', $company_id)->first();
+        $settings = \App\Models\CompanySetting::where('company_id', $company_id)->first()
+            ?? DB::table('admin_panel_settings')->where('company_id', $company_id)->first();
         $delayLimit = $settings ? (float)$settings->after_miniute_calculate_delay : 0.0;
         $earlyLeaveLimit = $settings ? (float)$settings->after_miniute_calculate_early_departure : 0.0;
 
@@ -426,7 +428,7 @@ class AttendancesController extends Controller
             $isFixed = $employee->is_has_fixed_shift == 1;
             $shiftHours = 0.0;
             if ($isFixed && $employee->shift_type_id) {
-                $shift = DB::table('shifts_types')->where('id', $employee->shift_type_id)->first();
+                $shift = DB::table('shifts_types')->where('company_id', $company_id)->where('id', $employee->shift_type_id)->first();
                 $shiftHours = $shift ? (float)$shift->total_hour : 0.0;
             } else {
                 $shiftHours = (float)($employee->daily_work_hour ?? 8.0);
@@ -467,7 +469,7 @@ class AttendancesController extends Controller
         $isFixed = $employee->is_has_fixed_shift == 1;
         $shift = null;
         if ($isFixed && $employee->shift_type_id) {
-            $shift = DB::table('shifts_types')->where('id', $employee->shift_type_id)->first();
+            $shift = DB::table('shifts_types')->where('company_id', $company_id)->where('id', $employee->shift_type_id)->first();
         }
         $dailyWorkHour = (float)($employee->daily_work_hour ?? 8.0);
 

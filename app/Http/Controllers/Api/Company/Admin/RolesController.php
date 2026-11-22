@@ -68,12 +68,11 @@ class RolesController extends Controller
 
         DB::beginTransaction();
         try {
-            // Create global role (company_id = null)
+            // Create global role
             $role = Role::create([
                 'name' => $request->name,
                 'display_name' => $request->display_name,
                 'guard_name' => 'web',
-                'company_id' => null 
             ]);
 
             if ($request->has('permissions')) {
@@ -206,6 +205,13 @@ class RolesController extends Controller
         $targetUser = User::where('id', $userId)
             ->where('company_id', $authUser->company_id)
             ->firstOrFail();
+
+        if ($targetUser->role === 'company_admin' || $targetUser->role === 'super_admin' || $targetUser->hasRole('company_admin')) {
+            return response()->json([
+                'status' => false,
+                'message' => __('messages.cannot_assign_company_admin_role')
+            ], 422);
+        }
 
         $role = Role::where('id', $request->role_id)
             ->firstOrFail();

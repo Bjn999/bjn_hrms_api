@@ -45,21 +45,21 @@ class AuthController extends Controller
                 'company_name' => $request->company_name,
                 'company_code' => $code,
                 'domain' => null,
+                'phones' => $request->phone ?? '',
+                'address' => '',
+                'email' => $request->admin_email,
                 'is_active' => 1,
             ]);
 
             // 2. Create Initial Company Settings
             CompanySetting::create([
                 'company_id' => $company->id,
-                'system_status' => 1,
                 'after_miniute_calculate_delay' => 15,
                 'after_miniute_calculate_early_departure' => 15,
                 'after_miniute_quarterday' => 45,
                 'after_time_half_daycut' => 60,
                 'after_time_allday_daycut' => 120,
-                'phones' => $request->phone ?? '',
-                'address' => '',
-                'email' => $request->admin_email,
+                'monthly_vacation_balance' => 21,
             ]);
 
             // 3. Create Company Admin User
@@ -96,16 +96,7 @@ class AuthController extends Controller
             // Link Employee ID to the User
             $adminUser->update(['employee_id' => $employee->id]);
 
-            // 5. BioTime Sync (graceful so it doesn't block registration if BioTime service is not reachable)
-            try {
-                $bioTimeService = new BioTimeService();
-                $bioTimeService->createArea($company->company_code, $company->company_name);
-                $bioTimeService->createEmployee($employee->employee_code, $employee->emp_name, $company->company_code);
-            } catch (\Exception $bioEx) {
-                Log::warning('BioTime sync skipped during company registration: ' . $bioEx->getMessage());
-            }
-
-            // 6. Assign Free Plan Subscription
+            // 5. Assign Free Plan Subscription
             $freePlan = Plan::where('slug', 'free')->first() ?? Plan::where('price_monthly', 0)->first() ?? Plan::first();
             if ($freePlan) {
                 Subscription::create([
@@ -124,11 +115,20 @@ class AuthController extends Controller
 
             DB::commit();
 
+            // 6. BioTime Sync outside DB transaction (graceful so it doesn't block registration if BioTime service is not reachable)
+            try {
+                $bioTimeService = new BioTimeService();
+                $bioTimeService->createArea($company->company_code, $company->company_name);
+                $bioTimeService->createEmployee($employee->employee_code, $employee->emp_name, $company->company_code);
+            } catch (\Exception $bioEx) {
+                Log::warning('BioTime sync skipped during company registration: ' . $bioEx->getMessage());
+            }
+
             // Generate token and load profile for instant login
             $token = $adminUser->createToken('auth_token', [$adminUser->role])->plainTextToken;
             $permissions = Permission::pluck('name');
             if ($adminUser->employee_id) {
-                $adminUser->load('employee');
+                $adminUser->load(['employee.job:id,name', 'employee.department:id,name', 'employee.branch:id,name']);
             }
 
             return response()->json([
@@ -159,13 +159,18 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('username', $request->username)
-                    ->orWhere('email', $request->username)
-                    ->first();
+        $candidates = User::where(function ($q) use ($request) {
+            $q->where('username', $request->username)
+              ->orWhere('email', $request->username);
+        })->get();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        $user = $candidates->first(function (User $candidate) use ($request) {
+            return Hash::check($request->password, $candidate->password);
+        });
+
+        if (! $user) {
             throw ValidationException::withMessages([
-                'username' => ['البيانات المدخلة غير صحيحة'],
+                'username' => [__('messages.login_failed')],
             ]);
         }
 
@@ -185,15 +190,16 @@ class AuthController extends Controller
             }
         }
 
-        // Delete old tokens
-        $user->tokens()->delete();
+        // Delete old tokens for the same device/session type
+        $tokenName = $request->input('device_name', 'auth_token');
+        $user->tokens()->where('name', $tokenName)->delete();
 
         // Create token with abilities based on role
-        $token = $user->createToken('auth_token', [$user->role])->plainTextToken;
+        $token = $user->createToken($tokenName, [$user->role])->plainTextToken;
         
         // Load related profile based on role (or fallback to employee_id if present)
         if ($user->employee_id) {
-            $user->load('employee');
+            $user->load(['employee.job:id,name', 'employee.department:id,name', 'employee.branch:id,name']);
         }
                 
         // If user is a company_admin, we give them all permissions by default in the frontend,
@@ -226,9 +232,7 @@ class AuthController extends Controller
 
         // Fallback: If no Spatie roles are attached, but user has string role 'employee'
         if ($permissions->isEmpty() && $user->role === 'employee') {
-            $employeeRole = Role::where('name', 'employee')
-                ->orWhere('name', 'موظف')
-                ->first();
+            $employeeRole = Role::where('name', 'employee')->first();
 
             if ($employeeRole) {
                 $permissions = $employeeRole->permissions->pluck('name');
@@ -256,7 +260,7 @@ class AuthController extends Controller
         $user = $request->user();
         
         if ($user->employee_id) {
-            $user->load('employee');
+            $user->load(['employee.job:id,name', 'employee.department:id,name', 'employee.branch:id,name']);
         }
         
         $permissions = $this->getPermissionsForUser($user);
@@ -335,8 +339,11 @@ class AuthController extends Controller
 
         $user->refresh();
         if ($user->employee_id) {
-            $user->load('employee');
+            $user->load(['employee.job:id,name', 'employee.department:id,name', 'employee.branch:id,name']);
         }
+
+        $userDataResponse = $user->toArray();
+        $userDataResponse['permissions'] = $this->getPermissionsForUser($user);
 
         $message = $credentialsChanged 
             ? __('messages.credentials_updated') 
@@ -346,7 +353,7 @@ class AuthController extends Controller
             'status' => true,
             'message' => $message,
             'credentials_changed' => $credentialsChanged,
-            'data' => $user
+            'data' => $userDataResponse
         ]);
     }
 }

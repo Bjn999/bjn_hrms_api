@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Attendance;
+use App\Models\Branche;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Finance_months_periods;
 use App\Models\Main_salary_employee;
 use App\Models\User;
+use App\Models\VacationRequest;
 
 class DashboardController extends Controller
 {
@@ -108,9 +111,77 @@ class DashboardController extends Controller
             }
         }
 
+        // 4. Company Overview (for company_admin, hr_manager, or users with view_company_dashboard)
+        $companyOverview = null;
+        $canViewCompanyDashboard = in_array($user->role, ['company_admin', 'hr_manager']) || $user->checkPermissionTo('view_company_dashboard');
+        if ($canViewCompanyDashboard && $comCode) {
+            $totalEmployees = Employee::where('company_id', $comCode)->count();
+            $activeEmployees = Employee::where('company_id', $comCode)->where('Functiona_status', 1)->count();
+
+            $currentMonthSalaries = 0;
+            if ($currentMonthInfo) {
+                $currentMonthSalaries = (float)Main_salary_employee::where('company_id', $comCode)
+                    ->where('finance_month_id', $currentMonthInfo->id)
+                    ->sum('final_the_net');
+            }
+            if ($currentMonthSalaries == 0) {
+                $currentMonthSalaries = (float)Employee::where('company_id', $comCode)
+                    ->where('Functiona_status', 1)
+                    ->sum('emp_sal');
+            }
+
+            $pendingLeaveRequests = VacationRequest::where('company_id', $comCode)
+                ->where('status', 'pending')
+                ->count();
+
+            $today = date('Y-m-d');
+            $absencesToday = Attendance::where('company_id', $comCode)
+                ->where('attendance_date', $today)
+                ->where('attendance_status', 2)
+                ->count();
+            $presentToday = Attendance::where('company_id', $comCode)
+                ->where('attendance_date', $today)
+                ->where('attendance_status', 1)
+                ->count();
+
+            $departmentsCount = Department::where('company_id', $comCode)->count();
+            $branchesCount = Branche::where('company_id', $comCode)->count();
+
+            $recentLeaveRequests = VacationRequest::where('company_id', $comCode)
+                ->with(['employee:id,emp_name,employee_code', 'vacationType:id,name'])
+                ->orderBy('id', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(function ($req) {
+                    return [
+                        'id' => $req->id,
+                        'emp_name' => $req->employee ? $req->employee->emp_name : '-',
+                        'emp_code' => $req->employee ? $req->employee->employee_code : '-',
+                        'vacation_type' => $req->vacationType ? $req->vacationType->name : '-',
+                        'start_date' => $req->start_date,
+                        'end_date' => $req->end_date,
+                        'days_count' => $req->days_count,
+                        'status' => $req->status,
+                    ];
+                });
+
+            $companyOverview = [
+                'total_employees' => $totalEmployees,
+                'active_employees' => $activeEmployees,
+                'current_month_salaries' => round($currentMonthSalaries, 2),
+                'pending_leave_requests' => $pendingLeaveRequests,
+                'absences_today' => $absencesToday,
+                'present_today' => $presentToday,
+                'departments_count' => $departmentsCount,
+                'branches_count' => $branchesCount,
+                'recent_leave_requests' => $recentLeaveRequests,
+            ];
+        }
+
         return response()->json([
             'status' => true,
             'data' => [
+                'company_overview' => $companyOverview,
                 'employee' => [
                     'emp_code' => $employee ? $employee->employee_code : '-',
                     'emp_name' => $employee ? $employee->emp_name : $user->name,

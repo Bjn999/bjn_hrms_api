@@ -113,7 +113,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
                         'added_by' => $user->id,
                     ]);
                     $i++;
-                    $effectivedate = date('Y-m', strtotime('+1 months', strtotime($effectivedate)));
+                    $effectivedate = \Carbon\Carbon::createFromFormat('Y-m', $effectivedate)->startOfMonth()->addMonth()->format('Y-m');
                 }
             }
 
@@ -179,7 +179,7 @@ class MainSalaryEmployeePermanentLoansController extends Controller
                         'added_by' => $user->id,
                     ]);
                     $i++;
-                    $effectivedate = date('Y-m', strtotime('+1 months', strtotime($effectivedate)));
+                    $effectivedate = \Carbon\Carbon::createFromFormat('Y-m', $effectivedate)->startOfMonth()->addMonth()->format('Y-m');
                 }
             } else {
                 Main_salary_p_loans_installment::where('company_id', $company_id)
@@ -305,16 +305,16 @@ class MainSalaryEmployeePermanentLoansController extends Controller
                 ->where('id', $installment_id)
                 ->first();
 
+            if (!$installment) {
+                return response()->json(['status' => false, 'message' => 'القسط غير موجود'], 404);
+            }
+
             $p_loan = Main_salary_employee_permanent_loan::where('company_id', $company_id)
                 ->where('id', $installment->main_salary_p_loans_id)
                 ->where('employee_code', $installment->employee_code)
                 ->first();
             if (!$p_loan) {
                 return response()->json(['status' => false, 'message' => 'السلفة غير موجودة'], 404);
-            }
-
-            if (!$installment) {
-                return response()->json(['status' => false, 'message' => 'القسط غير موجود'], 404);
             }
 
             if ($installment->status != 0) {
@@ -359,10 +359,15 @@ class MainSalaryEmployeePermanentLoansController extends Controller
                 $this->recaculate_main_salary_employee($main_salary_employee->id);
             }
 
-            // Update Permanent loan (total paid, total remain)
+            // Update Permanent loan (total paid, total remain) idempotently
+            $paidSum = (float) Main_salary_p_loans_installment::where([
+                'main_salary_p_loans_id' => $p_loan->id,
+                'company_id' => $company_id,
+            ])->whereIn('status', [1, 2])->sum('monthly_installment_value');
+
             $p_loan->update([
-                'total_paid' => $p_loan->total_paid + $installment->monthly_installment_value,
-                'total_remain' => $p_loan->total_remain - $installment->monthly_installment_value,
+                'total_paid' => $paidSum,
+                'total_remain' => max(0, (float) $p_loan->total - $paidSum),
             ]);
 
             DB::commit();

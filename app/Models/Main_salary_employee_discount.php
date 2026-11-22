@@ -28,6 +28,6 @@ class Main_salary_employee_discount extends TenantModel
         return $this->BelongsTo('\App\Models\discount_sal_type', 'discounts_type_id');
     }
     public function finance_month(){
-        return $this->BelongsTo('\App\Models\Finance_months_periods', 'finance_months_periods_id');
+        return $this->BelongsTo('\App\Models\Finance_months_periods', 'finance_month_periods_id');
     }
 }

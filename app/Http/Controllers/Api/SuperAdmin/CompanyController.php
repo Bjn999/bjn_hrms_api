@@ -62,21 +62,21 @@ class CompanyController extends Controller
                 'company_code' => $code,
                 'domain' => $request->domain,
                 'timezone' => $request->timezone ?? 'Asia/Riyadh',
+                'phones' => '',
+                'address' => '',
+                'email' => $request->admin_email,
                 'is_active' => 1,
             ]);
 
             // 2. Create Initial Company Settings
             CompanySetting::create([
                 'company_id' => $company->id,
-                'system_status' => 1,
                 'after_miniute_calculate_delay' => 15,
                 'after_miniute_calculate_early_departure' => 15,
                 'after_miniute_quarterday' => 45,
                 'after_time_half_daycut' => 60,
                 'after_time_allday_daycut' => 120,
-                'phones' => '',
-                'address' => '',
-                'email' => $request->admin_email,
+                'monthly_vacation_balance' => 21,
             ]);
 
             // 3. Create Company Admin User
@@ -112,16 +112,7 @@ class CompanyController extends Controller
             // Link the Employee ID to the User
             $adminUser->update(['employee_id' => $employee->id]);
 
-            // 5. Create Area in BioTime
-            // If BioTime fails or area code is duplicated, an exception will be thrown,
-            // caught by the outer catch block, and the database transaction will be rolled back.
-            $bioTimeService = new BioTimeService();
-            $bioTimeService->createArea($company->company_code, $company->company_name);
-
-            // 6. Create the Manager in BioTime
-            $bioTimeService->createEmployee($employee->employee_code, $employee->emp_name, $company->company_code);
-
-            // 7. Assign Initial Free Plan Subscription
+            // 5. Assign Initial Free Plan Subscription
             $freePlan = Plan::where('slug', 'free')->first() ?? Plan::first();
             if ($freePlan) {
                 Subscription::create([
@@ -140,6 +131,15 @@ class CompanyController extends Controller
             }
 
             DB::commit();
+
+            // 6. BioTime Sync outside DB transaction
+            try {
+                $bioTimeService = new BioTimeService();
+                $bioTimeService->createArea($company->company_code, $company->company_name);
+                $bioTimeService->createEmployee($employee->employee_code, $employee->emp_name, $company->company_code);
+            } catch (Exception $bioEx) {
+                Log::warning('BioTime sync skipped during SuperAdmin company creation: ' . $bioEx->getMessage());
+            }
 
             return response()->json([
                 'status' => true,

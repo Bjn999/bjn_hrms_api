@@ -111,8 +111,7 @@ class AdditionalSalTypesController extends Controller
             }
 
             $counterReward = Main_salary_employee_reward::where(['company_id' => $user->company_id, 'additions_type_id' => $id])->count();
-            $counterAddition = Main_salary_employee_addition::where(['company_id' => $user->company_id, 'additions_type_id' => $id])->count();
-            if (($counterReward + $counterAddition) > 0) {
+            if ($counterReward > 0) {
                 return response()->json(['status' => false, 'message' => __('messages.cannot_delete_used')], 422);
             }
 

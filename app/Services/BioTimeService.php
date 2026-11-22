@@ -54,12 +54,13 @@ class BioTimeService
     private function getTerminalsByArea($areaCode, &$token)
     {
         $terminalsSn = [];
+        $internalAreaId = $this->getAreaIdByCode($areaCode) ?? $areaCode;
 
         $response = Http::withHeaders([
             'Authorization' => "JWT {$token}",
             'Accept' => 'application/json',
         ])->get("{$this->serverUrl}/iclock/api/terminals/", [
-            'area' => $areaCode,
+            'area' => $internalAreaId,
         ]);
 
         if ($response->status() === 401) {
@@ -69,7 +70,7 @@ class BioTimeService
                 'Authorization' => "JWT {$token}",
                 'Accept' => 'application/json',
             ])->get("{$this->serverUrl}/iclock/api/terminals/", [
-                'area' => $areaCode,
+                'area' => $internalAreaId,
             ]);
 
             if ($response->failed()) {

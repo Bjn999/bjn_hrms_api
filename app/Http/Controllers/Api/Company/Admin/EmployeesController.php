@@ -45,7 +45,7 @@ class EmployeesController extends Controller
         try {
             $user = auth()->user();
             $company_id = $user->company_id;
-            $query = Employee::with(['branch:id,name', 'department:id,name', 'job:id,name', 'added:id,name', 'updatedby:id,name', 'user:id,employee_id,username,email,is_active', 'user.roles:id,name,display_name'])
+            $query = Employee::with(['branch:id,name', 'department:id,name', 'job:id,name', 'added:id,name', 'updatedby:id,name', 'user:id,employee_id,username,email,is_active,initial_password', 'user.roles:id,name,display_name'])
                 ->where('company_id', $company_id);
 
             // Search filters
@@ -68,8 +68,16 @@ class EmployeesController extends Controller
 
             $data = $query->orderBy('id', 'DESC')->get();
 
+            $salaryCounts = Main_salary_employee::where('company_id', $company_id)
+                ->select('employee_code', DB::raw('count(*) as total'))
+                ->groupBy('employee_code')
+                ->pluck('total', 'employee_code');
+
             foreach ($data as $info) {
-                $info->counterUsed = Main_salary_employee::where(['company_id' => $company_id, 'employee_code' => $info->employee_code])->count();
+                $info->counterUsed = (int) ($salaryCounts[$info->employee_code] ?? 0);
+                if ($info->user) {
+                    $info->user->makeVisible('initial_password');
+                }
             }
 
             return response()->json([
@@ -143,6 +151,8 @@ class EmployeesController extends Controller
                 'emp_job_id' => 'required',
                 'emp_sal' => 'required|numeric',
                 'emp_start_date' => 'required|date',
+                'emp_photo' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:5120',
+                'emp_cv' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
             ]);
 
             if ($validator->fails()) {
@@ -171,44 +181,65 @@ class EmployeesController extends Controller
                 }
             }
 
+            if ($request->role_id) {
+                $role = Role::find($request->role_id);
+                if ($role && in_array($role->name, ['company_admin', 'super_admin'])) {
+                    return response()->json(['status' => false, 'message' => __('messages.cannot_assign_company_admin_role')], 422);
+                }
+            }
 
-
-            $last_employee = Employee::where('company_id', $user->company_id)->orderBy('employee_code', 'DESC')->first();
-            $employee_code = $last_employee ? $last_employee->employee_code + 1 : 1;
-
-            $dataToInsert = $request->except(['emp_photo', 'emp_cv', 'role_id']);
-            $dataToInsert['employee_code'] = $employee_code;
-            $dataToInsert['company_id'] = $user->company_id;
-            $dataToInsert['added_by'] = $user->id;
-            $dataToInsert['date'] = date('Y-m-d');
+            $columns = Schema::getColumnListing('employees');
+            $dataToInsert = $request->only($columns);
+            unset(
+                $dataToInsert['id'],
+                $dataToInsert['employee_code'],
+                $dataToInsert['company_id'],
+                $dataToInsert['added_by'],
+                $dataToInsert['updated_by'],
+                $dataToInsert['date'],
+                $dataToInsert['emp_photo'],
+                $dataToInsert['emp_cv']
+            );
 
             if ($request->hasFile('emp_photo')) {
                 $file = $request->file('emp_photo');
-                $filename = time() . '_photo.' . $file->getClientOriginalExtension();
+                $filename = time() . '_' . uniqid() . '_photo.' . $file->getClientOriginalExtension();
                 $file->move(public_path('assets/admin/uploads'), $filename);
                 $dataToInsert['emp_photo'] = $filename;
             }
 
             if ($request->hasFile('emp_cv')) {
                 $file = $request->file('emp_cv');
-                $filename = time() . '_cv.' . $file->getClientOriginalExtension();
+                $filename = time() . '_' . uniqid() . '_cv.' . $file->getClientOriginalExtension();
                 $file->move(public_path('assets/admin/uploads'), $filename);
                 $dataToInsert['emp_cv'] = $filename;
             }
 
             DB::beginTransaction();
 
+            $last_employee = Employee::where('company_id', $user->company_id)
+                ->lockForUpdate()
+                ->orderBy('employee_code', 'DESC')
+                ->first();
+            $employee_code = $last_employee ? $last_employee->employee_code + 1 : 1;
+
+            $dataToInsert['employee_code'] = $employee_code;
+            $dataToInsert['company_id'] = $user->company_id;
+            $dataToInsert['added_by'] = $user->id;
+            $dataToInsert['date'] = date('Y-m-d');
+
             $employee = Employee::create($dataToInsert);
 
-            // Create ESS User Account for the employee
-            $company = Company::find($user->company_id);
+            // Create ESS User Account for the employee with a unique 8-digit random initial password
             $username = $company->company_code . '-EMP' . $employee_code;
+            $initialPassword = (string) random_int(10000000, 99999999);
 
             $createdUser = User::create([
                 'name' => $request->emp_name,
                 'username' => $username,
                 'email' => $request->emp_email ?? null,
-                'password' => Hash::make('12345678'),
+                'password' => Hash::make($initialPassword),
+                'initial_password' => $initialPassword,
                 'role' => 'employee',
                 'employee_id' => $employee->id,
                 'company_id' => $user->company_id,
@@ -217,10 +248,6 @@ class EmployeesController extends Controller
 
             if ($request->role_id) {
                 $role = Role::find($request->role_id);
-                if ($role && in_array($role->name, ['company_admin', 'super_admin'])) {
-                    DB::rollBack();
-                    return response()->json(['status' => false, 'message' => __('messages.cannot_assign_company_admin_role')], 422);
-                }
                 if ($role) {
                     $createdUser->assignRole($role);
                     $createdUser->update(['role' => $role->name]);
@@ -234,15 +261,18 @@ class EmployeesController extends Controller
                 'company_id' => $user->company_id
             ]);
 
-            // Add to BioTime
-            $bioTimeService = new BioTimeService();
-            // BioTime emp_code uses zketo_code if provided, otherwise the generated employee_code
-            $bioTimeCode = $request->zketo_code ? $request->zketo_code : $employee_code;
-            $bioTimeService->createEmployee($bioTimeCode, $request->emp_name, $user->company_id);
-
             DB::commit();
 
-            return response()->json(['status' => true, 'message' => 'تم الحفظ بنجاح']);
+            // Add to BioTime outside DB transaction so network latency or failure does not roll back employee creation
+            try {
+                $bioTimeService = new BioTimeService();
+                $bioTimeCode = $request->zketo_code ? $request->zketo_code : $employee_code;
+                $bioTimeService->createEmployee($bioTimeCode, $request->emp_name, $company->company_code);
+            } catch (\Exception $bioEx) {
+                \Illuminate\Support\Facades\Log::warning('BioTime employee sync skipped: ' . $bioEx->getMessage());
+            }
+
+            return response()->json(['status' => true, 'message' => __('messages.saved_successfully')]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
@@ -322,6 +352,8 @@ class EmployeesController extends Controller
                 'branch_id' => 'required',
                 'emp_departments_id' => 'required',
                 'emp_job_id' => 'required',
+                'emp_photo' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:5120',
+                'emp_cv' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
             ]);
 
             if ($validator->fails()) {
@@ -340,7 +372,9 @@ class EmployeesController extends Controller
                 $requestData['employee_code'],
                 $requestData['company_id'],
                 $requestData['added_by'],
-                $requestData['date']
+                $requestData['date'],
+                $requestData['emp_photo'],
+                $requestData['emp_cv']
             );
             $requestData['updated_by'] = $user->id;
 
@@ -349,7 +383,7 @@ class EmployeesController extends Controller
                     unlink(public_path('assets/admin/uploads/' . $data->emp_photo));
                 }
                 $file = $request->file('emp_photo');
-                $filename = time() . '_photo.' . $file->getClientOriginalExtension();
+                $filename = time() . '_' . uniqid() . '_photo.' . $file->getClientOriginalExtension();
                 $file->move(public_path('assets/admin/uploads'), $filename);
                 $requestData['emp_photo'] = $filename;
             }
@@ -359,10 +393,12 @@ class EmployeesController extends Controller
                     unlink(public_path('assets/admin/uploads/' . $data->emp_cv));
                 }
                 $file = $request->file('emp_cv');
-                $filename = time() . '_cv.' . $file->getClientOriginalExtension();
+                $filename = time() . '_' . uniqid() . '_cv.' . $file->getClientOriginalExtension();
                 $file->move(public_path('assets/admin/uploads'), $filename);
                 $requestData['emp_cv'] = $filename;
             }
+
+            DB::beginTransaction();
 
             $old_salary = $data->emp_sal;
             $data->update($requestData);
@@ -381,7 +417,7 @@ class EmployeesController extends Controller
             }
 
             if ($request->has('role_id')) {
-                $empUser = User::where('employee_id', $id)->first();
+                $empUser = User::where('employee_id', $id)->where('company_id', $user->company_id)->first();
                 if ($empUser) {
                     // Prevent changing role if user is company_admin
                     if ($empUser->role === 'company_admin' || $empUser->hasRole('company_admin')) {
@@ -390,6 +426,7 @@ class EmployeesController extends Controller
                         if ($request->role_id) {
                             $role = Role::find($request->role_id);
                             if ($role && in_array($role->name, ['company_admin', 'super_admin'])) {
+                                DB::rollBack();
                                 return response()->json(['status' => false, 'message' => __('messages.cannot_assign_company_admin_role')], 422);
                             }
                             if ($role) {
@@ -404,8 +441,11 @@ class EmployeesController extends Controller
                 }
             }
 
-            return response()->json(['status' => true, 'message' => 'تم التعديل بنجاح']);
+            DB::commit();
+
+            return response()->json(['status' => true, 'message' => __('messages.updated_successfully')]);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
         }
     }
@@ -430,17 +470,22 @@ class EmployeesController extends Controller
                 return response()->json(['status' => false, 'message' => 'عفواً لا يمكن حذف الموظف لأنه لديه سجلات رواتب في النظام'], 422);
             }
 
+            DB::beginTransaction();
+
             // 3. Delete associated user account if exists, updating any references first
-            $employeeUser = User::where('employee_id', $data->id)->first();
+            $employeeUser = User::where('employee_id', $data->id)->where('company_id', $user->company_id)->first();
             if ($employeeUser) {
                 // Reassign any employees added by this user to the current admin user to prevent foreign key error
                 Employee::where('added_by', $employeeUser->id)->update(['added_by' => $user->id]);
+                $employeeUser->tokens()->delete();
                 $employeeUser->delete();
             }
 
             $data->delete();
+            DB::commit();
             return response()->json(['status' => true, 'message' => __('messages.deleted')]);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
         }
     }
@@ -627,14 +672,14 @@ class EmployeesController extends Controller
 
             if ($request->hasFile('file_path')) {
                 $file = $request->file('file_path');
-                $filename = time() . '_file.' . $file->getClientOriginalExtension();
+                $filename = time() . '_' . uniqid() . '_file.' . $file->getClientOriginalExtension();
                 $file->move(public_path('assets/admin/uploads'), $filename);
                 $dataToInsert['file_path'] = $filename;
             }
 
             Employee_File::create($dataToInsert);
 
-            return response()->json(['status' => true, 'message' => 'تم إضافة الملف بنجاح']);
+            return response()->json(['status' => true, 'message' => __('messages.employee_file_added')]);
         } catch (\Exception $e) {
             return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
         }
@@ -672,7 +717,7 @@ class EmployeesController extends Controller
                 return response()->json(['status' => false, 'message' => __('messages.employee_cannot_disable_self')], 422);
             }
 
-            $employeeUser = User::where('employee_id', $employee->id)->first();
+            $employeeUser = User::where('employee_id', $employee->id)->where('company_id', $user->company_id)->first();
 
             if (!$employeeUser) {
                 return response()->json(['status' => false, 'message' => __('messages.employee_no_login_account')], 404);
@@ -680,6 +725,10 @@ class EmployeesController extends Controller
 
             $employeeUser->is_active = $employeeUser->is_active ? 0 : 1;
             $employeeUser->save();
+
+            if (!$employeeUser->is_active) {
+                $employeeUser->tokens()->delete();
+            }
 
 
             return response()->json([
@@ -689,6 +738,48 @@ class EmployeesController extends Controller
             ]);
         } catch (\Exception $e) {
             return response()->json(['status' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function resetPassword(Request $request, $id)
+    {
+        try {
+            $user = auth()->user();
+            $employee = Employee::where(['id' => $id, 'company_id' => $user->company_id])->first();
+
+            if (!$employee) {
+                return response()->json(['status' => false, 'message' => __('messages.employee_not_found')], 404);
+            }
+
+            $employeeUser = User::where('employee_id', $employee->id)->where('company_id', $user->company_id)->first();
+
+            if (!$employeeUser) {
+                return response()->json(['status' => false, 'message' => __('messages.employee_no_login_account')], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'password' => 'nullable|string|min:6|max:100',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json(['status' => false, 'message' => $validator->errors()->first()], 422);
+            }
+
+            $newPassword = $request->filled('password')
+                ? $request->password
+                : (string) random_int(10000000, 99999999);
+
+            $employeeUser->password = Hash::make($newPassword);
+            $employeeUser->initial_password = $newPassword;
+            $employeeUser->save();
+
+            return response()->json([
+                'status' => true,
+                'message' => __('messages.employee_password_reset_success'),
+                'initial_password' => $newPassword,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'message' => __('messages.server_error')], 500);
         }
     }
 }

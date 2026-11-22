@@ -67,7 +67,15 @@ class AttendanceRawLogsController extends Controller
                 ], 422);
             }
 
-            $log = AttendanceRawLog::create(array_merge($request->all(), [
+            $allowed = $request->only([
+                'finance_months_periods_id',
+                'employee_code',
+                'actionDateTime',
+                'actionType',
+                'actionMethod',
+            ]);
+
+            $log = AttendanceRawLog::create(array_merge($allowed, [
                 'company_id' => $user->company_id,
                 'added_by' => $user->id,
             ]));

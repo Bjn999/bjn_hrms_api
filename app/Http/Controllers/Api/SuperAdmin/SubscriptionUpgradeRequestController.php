@@ -76,7 +76,7 @@ class SubscriptionUpgradeRequestController extends Controller
         if ($upgradeRequest->status !== 'pending') {
             return response()->json([
                 'status' => false,
-                'message' => __('messages.saved_successfully')
+                'message' => __('messages.upgrade_request_already_pending')
             ], 422);
         }
 
@@ -189,7 +189,7 @@ class SubscriptionUpgradeRequestController extends Controller
         if ($upgradeRequest->status !== 'pending') {
             return response()->json([
                 'status' => false,
-                'message' => __('messages.saved_successfully')
+                'message' => __('messages.upgrade_request_already_pending')
             ], 422);
         }
 
@@ -236,14 +236,14 @@ class SubscriptionUpgradeRequestController extends Controller
             'subscriptions' => function ($q) {
                 $q->with('plan')->orderBy('id', 'desc');
             }
-        ]);
+        ])->withCount(['employees', 'users']);
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('company_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone_number', 'like', "%{$search}%");
+                  ->orWhere('phones', 'like', "%{$search}%");
             });
         }
 
@@ -258,8 +258,8 @@ class SubscriptionUpgradeRequestController extends Controller
 
         // Attach employee count and user count
         $companiesData = $companies->map(function ($company) {
-            $totalEmployees = Employee::where('company_id', $company->id)->count();
-            $totalUsers = User::where('company_id', $company->id)->count();
+            $totalEmployees = (int) ($company->employees_count ?? 0);
+            $totalUsers = (int) ($company->users_count ?? 0);
             $currentSub = $company->currentSubscription ?: $company->subscriptions->first();
             $maxUsers = ($currentSub && $currentSub->plan) ? $currentSub->plan->max_users : 0;
 
@@ -267,7 +267,7 @@ class SubscriptionUpgradeRequestController extends Controller
                 'id' => $company->id,
                 'name' => $company->company_name,
                 'email' => $company->email,
-                'phone' => $company->phone_number,
+                'phone' => $company->phones,
                 'is_active' => $company->is_active,
                 'created_at' => $company->created_at ? $company->created_at->format('Y-m-d') : null,
                 'total_employees' => $totalEmployees,

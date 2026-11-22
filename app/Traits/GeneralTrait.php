@@ -172,16 +172,22 @@ trait GeneralTrait
                     'is_parent_disbursed' => 1,
                 ])->where('status', '!=', 2)->get();
 
-                foreach ($p_installments as $p_inst) {
+                $parentLoanIds = $p_installments->pluck('main_salary_p_loans_id')->unique();
+                foreach ($parentLoanIds as $loanId) {
                     $p_installment_parent = Main_salary_employee_permanent_loan::where([
-                        'id' => $p_inst->main_salary_p_loans_id,
+                        'id' => $loanId,
                         'employee_code' => $main_salary_employee_data->employee_code,
                         'company_id' => $company_id,
                     ])->first();
                     if ($p_installment_parent) {
+                        $paidSum = (float) Main_salary_p_loans_installment::where([
+                            'main_salary_p_loans_id' => $p_installment_parent->id,
+                            'company_id' => $company_id,
+                        ])->whereIn('status', [1, 2])->sum('monthly_installment_value');
+
                         $p_installment_parent->update([
-                            'total_paid' => $p_installment_parent->total_paid + $p_inst->monthly_installment_value,
-                            'total_remain' => $p_installment_parent->total_remain - $p_inst->monthly_installment_value,
+                            'total_paid' => $paidSum,
+                            'total_remain' => max(0, (float) $p_installment_parent->total - $paidSum),
                         ]);
                     }
                 }

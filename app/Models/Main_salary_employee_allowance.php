@@ -19,7 +19,7 @@ class Main_salary_employee_allowance extends TenantModel
         return $this->BelongsTo('\App\Models\User', 'updated_by');
     }
     public function employee(){
-        return $this->BelongsTo('\App\Models\Employee', 'employee_code');
+        return $this->BelongsTo('\App\Models\Employee', 'employee_code', 'employee_code');
     }
     public function archived_by(){
         return $this->BelongsTo('\App\Models\User', 'archived_by');
@@ -28,6 +28,6 @@ class Main_salary_employee_allowance extends TenantModel
         return $this->BelongsTo('\App\Models\Allowance', 'allowances_id');
     }
     public function finance_month(){
-        return $this->BelongsTo('\App\Models\Finance_months_periods', 'finance_months_periods_id');
+        return $this->BelongsTo('\App\Models\Finance_months_periods', 'finance_month_periods_id');
     }
 }

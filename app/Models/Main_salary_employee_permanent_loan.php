@@ -24,7 +24,7 @@ class Main_salary_employee_permanent_loan extends TenantModel
     }
     public function employee()
     {
-        return $this->BelongsTo('\App\Models\Employee', 'employee_code');
+        return $this->BelongsTo('\App\Models\Employee', 'employee_code', 'employee_code');
     }
     public function archived_by()
     {

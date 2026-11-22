@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\CheckSubscriptionStatus;
+use App\Http\Middleware\CheckSuperAdmin;
 use App\Http\Middleware\SetLocaleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => CheckPermission::class,
             'subscription.active' => CheckSubscriptionStatus::class,
+            'super_admin' => CheckSuperAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

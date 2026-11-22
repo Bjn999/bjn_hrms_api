@@ -165,21 +165,21 @@ class SeedCompanies extends Command
                     'company_code' => $code,
                     'domain' => $domainSlug,
                     'timezone' => 'Asia/Riyadh',
+                    'phones' => '05' . rand(10000000, 99999999),
+                    'address' => 'المملكة العربية السعودية',
+                    'email' => $adminEmail,
                     'is_active' => 1,
                 ]);
 
                 // B. Create Company Settings
                 CompanySetting::create([
                     'company_id' => $company->id,
-                    'system_status' => 1,
                     'after_miniute_calculate_delay' => 15,
                     'after_miniute_calculate_early_departure' => 15,
                     'after_miniute_quarterday' => 45,
                     'after_time_half_daycut' => 60,
                     'after_time_allday_daycut' => 120,
-                    'phones' => '05' . rand(10000000, 99999999),
-                    'address' => 'المملكة العربية السعودية',
-                    'email' => $adminEmail,
+                    'monthly_vacation_balance' => 21,
                 ]);
 
                 // C. Create Company Admin User First

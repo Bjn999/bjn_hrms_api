@@ -315,8 +315,8 @@ class VacationRequestsController extends Controller
                 
                 // Find open finance period for this date if exists
                 $financePeriod = Finance_months_periods::where('company_id', $company_id)
-                    ->where('START_DATE_M', '<=', $dateStr)
-                    ->where('END_DATE_M', '>=', $dateStr)
+                    ->where('start_date_m', '<=', $dateStr)
+                    ->where('end_date_m', '>=', $dateStr)
                     ->first();
 
                 $att = Attendance::firstOrNew([
@@ -429,6 +429,14 @@ class VacationRequestsController extends Controller
                 'status' => false,
                 'message' => __('messages.vacation_request_not_found')
             ], 404);
+        }
+
+        $isManager = ($user->role === 'company_admin' || $user->role === 'hr_manager' || $user->checkPermissionTo('edit_occasions') || $user->checkPermissionTo('edit_employees'));
+        if (!$isManager && $vacReq->employee_id !== $user->employee_id) {
+            return response()->json([
+                'status' => false,
+                'message' => __('messages.unauthorized_permission')
+            ], 403);
         }
 
         if ($vacReq->status != 0) {
